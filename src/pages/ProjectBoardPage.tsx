@@ -1,129 +1,125 @@
 import { useMemo } from "react";
-import { Funnel, Kanban, List, Plus, Rows3, SlidersHorizontal } from "lucide-react";
+import { Funnel, Plus, SlidersHorizontal } from "lucide-react";
 import { Board } from "@/features/board/Board";
-import { ProjectHeader } from "@/features/projects/ProjectHeader";
-import { mockTasks, mockUsers } from "@/features/tasks/mockTasks";
+import { useProjectLayoutContext } from "@/features/projects/context/ProjectLayoutContext";
+import { useTasks } from "@/features/tasks/hooks/useTasks";
+import { groupTasksByStatus } from "@/features/tasks/lib/selectors";
 import { TaskDrawer } from "@/features/tasks/TaskDrawer";
-import { useTaskStore } from "@/features/tasks/taskStore";
-import type { TaskStatus } from "@/features/tasks/types";
+import { taskStoreSelectors, useTaskStore } from "@/features/tasks/taskStore";
 import { Button } from "@/shared/ui/Button";
 import { Select } from "@/shared/ui/Select";
 
-const statuses: TaskStatus[] = ["Backlog", "In Progress", "Completed"];
-
 export const ProjectBoardPage = () => {
-  const selectedTaskId = useTaskStore((state) => state.selectedTaskId);
-  const isDrawerOpen = useTaskStore((state) => state.isDrawerOpen);
-  const searchQuery = useTaskStore((state) => state.searchQuery);
-  const assigneeFilter = useTaskStore((state) => state.assigneeFilter);
-  const tagFilter = useTaskStore((state) => state.tagFilter);
+  const { projectId, project } = useProjectLayoutContext();
+  const selectedTaskId = useTaskStore(taskStoreSelectors.selectedTaskId);
+  const isDrawerOpen = useTaskStore(taskStoreSelectors.isTaskDrawerOpen);
+  const searchQuery = useTaskStore(taskStoreSelectors.searchQuery);
+  const assigneeFilter = useTaskStore(taskStoreSelectors.assigneeFilter);
+  const tagFilter = useTaskStore(taskStoreSelectors.tagFilter);
+  const sortKey = useTaskStore(taskStoreSelectors.sortKey);
   const setAssigneeFilter = useTaskStore((state) => state.setAssigneeFilter);
   const setTagFilter = useTaskStore((state) => state.setTagFilter);
-  const openTask = useTaskStore((state) => state.openTask);
-  const closeDrawer = useTaskStore((state) => state.closeDrawer);
+  const setSortKey = useTaskStore((state) => state.setSortKey);
+  const openTaskDrawer = useTaskStore((state) => state.openTaskDrawer);
+  const closeTaskDrawer = useTaskStore((state) => state.closeTaskDrawer);
 
-  const allTags = useMemo(() => Array.from(new Set(mockTasks.flatMap((task) => task.tags))).sort(), []);
+  const { data: tasks = [], isLoading, isError } = useTasks(projectId, {
+    searchQuery,
+    assigneeFilter,
+    tagFilter
+  });
 
-  const filteredTasks = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return mockTasks.filter((task) => {
-      const matchesAssignee = assigneeFilter === "all" || task.assigneeId === assigneeFilter;
-      const matchesTag = tagFilter === "all" || task.tags.includes(tagFilter);
-      const matchesQuery =
-        query.length === 0 ||
-        task.title.toLowerCase().includes(query) ||
-        task.description.toLowerCase().includes(query);
+  const allTags = useMemo(() => Array.from(new Set(tasks.flatMap((task) => task.tags))).sort(), [tasks]);
 
-      return matchesAssignee && matchesTag && matchesQuery;
-    });
-  }, [assigneeFilter, searchQuery, tagFilter]);
+  const normalizedTasks = useMemo(() => {
+    if (sortKey !== "dueDate") {
+      return tasks;
+    }
 
-  const tasksByStatus = useMemo(
+    return [...tasks].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  }, [sortKey, tasks]);
+
+  const tasksByStatus = useMemo(() => groupTasksByStatus(normalizedTasks), [normalizedTasks]);
+  const assigneesById = useMemo(
     () =>
-      statuses.reduce(
-        (acc, status) => {
-          acc[status] = filteredTasks.filter((task) => task.status === status);
-          return acc;
-        },
-        {
-          Backlog: [],
-          "In Progress": [],
-          Completed: []
-        } as Record<TaskStatus, typeof filteredTasks>
-      ),
-    [filteredTasks]
+      project.members.reduce<Record<string, string>>((acc, member) => {
+        acc[member.id] = member.name;
+        return acc;
+      }, {}),
+    [project.members]
   );
 
-  const selectedTask = mockTasks.find((task) => task.id === selectedTaskId) ?? null;
+  const selectedTask = normalizedTasks.find((task) => task.id === selectedTaskId) ?? null;
+
+  if (isLoading) {
+    return (
+      <section className="bg-slate-50 p-3 sm:p-4 lg:p-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading board...</div>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section className="bg-slate-50 p-3 sm:p-4 lg:p-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">Failed to load tasks for this project.</div>
+      </section>
+    );
+  }
 
   return (
     <div className="flex min-h-0 gap-4 lg:gap-6">
       <div className="min-w-0 flex-1">
-        <ProjectHeader />
-
         <section className="border-b border-slate-200 bg-white px-3 py-3 sm:px-4 lg:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="primary">
-                <Kanban className="h-4 w-4" />
-                Board
-              </Button>
-              <Button variant="secondary">
-                <List className="h-4 w-4" />
-                List
-              </Button>
-              <Button variant="secondary">
-                <Rows3 className="h-4 w-4" />
-                Timeline
-              </Button>
-              <Button variant="ghost" className="text-slate-700">
-                <Funnel className="h-4 w-4" />
-                Filter
-              </Button>
-              <Button variant="ghost" className="text-slate-700">
-                <SlidersHorizontal className="h-4 w-4" />
-                Sort
-              </Button>
-              <Button variant="ghost" className="text-slate-700">
-                Group
-              </Button>
-            </div>
-
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="secondary">
                 <Plus className="h-4 w-4" />
                 Add Task
               </Button>
-              <Select value={assigneeFilter} onChange={(event) => setAssigneeFilter(event.target.value)} icon={<Funnel className="h-4 w-4" />}>
-                <option value="all">Filter</option>
-                {mockUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
+              <Select
+                value={assigneeFilter}
+                onChange={(event) => setAssigneeFilter(event.target.value)}
+                icon={<Funnel className="h-4 w-4" />}
+              >
+                <option value="all">Filter by Assignee</option>
+                {project.members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
                   </option>
                 ))}
               </Select>
               <Select value={tagFilter} onChange={(event) => setTagFilter(event.target.value)}>
-                <option value="all">Sort</option>
+                <option value="all">Filter by Tag</option>
                 {allTags.map((tag) => (
                   <option key={tag} value={tag}>
                     {tag}
                   </option>
                 ))}
               </Select>
-              <Button variant="secondary">
-                <Plus className="h-4 w-4" />
-                Add Column
-              </Button>
+              <Select
+                value={sortKey}
+                onChange={(event) => setSortKey(event.target.value as "manual" | "dueDate")}
+                icon={<SlidersHorizontal className="h-4 w-4" />}
+              >
+                <option value="manual">Sort: Manual</option>
+                <option value="dueDate">Sort: Due Date</option>
+              </Select>
             </div>
           </div>
         </section>
 
         <div className="bg-slate-50 px-3 py-4 sm:px-4 lg:px-6">
-          <Board tasksByStatus={tasksByStatus} onTaskClick={openTask} />
+          <Board tasksByStatus={tasksByStatus} assigneesById={assigneesById} onTaskClick={openTaskDrawer} />
         </div>
       </div>
 
-      <TaskDrawer isOpen={isDrawerOpen} task={selectedTask} onClose={closeDrawer} />
+      <TaskDrawer
+        isOpen={isDrawerOpen}
+        task={selectedTask}
+        users={project.members}
+        onClose={closeTaskDrawer}
+      />
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import { MessageSquare, Paperclip } from "lucide-react";
 import type { Task } from "@/features/tasks/types";
-import { mockUsers } from "@/features/tasks/mockTasks";
 import { cn } from "@/shared/lib/cn";
 import { formatDueDate } from "@/shared/lib/date";
 import { Avatar } from "@/shared/ui/Avatar";
@@ -8,6 +7,7 @@ import { Badge } from "@/shared/ui/Badge";
 
 type TaskCardProps = {
   task: Task;
+  assigneeName?: string;
   onClick: () => void;
 };
 
@@ -17,9 +17,7 @@ const priorityTone: Record<Task["priority"], "red" | "amber" | "slate"> = {
   Low: "slate"
 };
 
-export const TaskCard = ({ task, onClick }: TaskCardProps) => {
-  const assignee = mockUsers.find((user) => user.id === task.assigneeId);
-
+export const TaskCard = ({ task, assigneeName, onClick }: TaskCardProps) => {
   return (
     <button
       onClick={onClick}
@@ -40,7 +38,7 @@ export const TaskCard = ({ task, onClick }: TaskCardProps) => {
 
       <div className="flex items-center justify-between gap-3 pt-3 text-xs text-slate-500">
         <div className="flex items-center gap-2">
-          {assignee ? <Avatar name={assignee.name} size="sm" /> : null}
+          {assigneeName ? <Avatar name={assigneeName} size="sm" /> : null}
           <span>{formatDueDate(task.dueDate)}</span>
         </div>
 

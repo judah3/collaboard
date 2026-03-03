@@ -1,9 +1,9 @@
 import { Check, ChevronDown, FolderKanban } from "lucide-react";
-import { mockProject } from "@/features/projects/mockProject";
+import type { Project } from "@/features/projects/types";
 import { formatDueDate } from "@/shared/lib/date";
 import { Avatar } from "@/shared/ui/Avatar";
 
-export const ProjectHeader = () => {
+export const ProjectHeader = ({ project }: { project: Project }) => {
   return (
     <section className="border-b border-slate-200 bg-white">
       <div className="flex flex-wrap items-start gap-3 px-3 py-4 sm:px-4 lg:px-6">
@@ -11,8 +11,8 @@ export const ProjectHeader = () => {
           <FolderKanban className="h-6 w-6" />
         </div>
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-slate-900">{mockProject.name}</h1>
-          <p className="text-base text-slate-600">{mockProject.description}</p>
+          <h1 className="text-2xl font-semibold text-slate-900">{project.name}</h1>
+          <p className="text-base text-slate-600">{project.description}</p>
         </div>
       </div>
 
@@ -25,16 +25,16 @@ export const ProjectHeader = () => {
           <ChevronDown className="h-4 w-4 text-slate-400" />
         </button>
         <div className="flex -space-x-2">
-          {mockProject.members.map((member) => (
+          {project.members.map((member) => (
             <Avatar key={member.id} name={member.name} size="md" />
           ))}
         </div>
-        <span className="text-sm text-slate-600">Due: {formatDueDate(mockProject.dueDate)}</span>
+        <span className="text-sm text-slate-600">Due: {formatDueDate(project.dueDate)}</span>
         <div className="flex items-center gap-2">
           <div className="h-2 w-24 rounded-full bg-slate-200">
-            <div className="h-2 rounded-full bg-blue-600" style={{ width: `${mockProject.progress}%` }} />
+            <div className="h-2 rounded-full bg-blue-600" style={{ width: `${project.progress}%` }} />
           </div>
-          <span className="text-sm text-slate-600">{mockProject.progress}%</span>
+          <span className="text-sm text-slate-600">{project.progress}%</span>
         </div>
       </div>
     </section>

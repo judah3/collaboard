@@ -1,13 +1,24 @@
 import { Bell, BriefcaseBusiness, Clock3, Plus, Search } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
-import { useTaskStore } from "@/features/tasks/taskStore";
+import { Link, useLocation, useMatches } from "react-router-dom";
+import { taskStoreSelectors, useTaskStore } from "@/features/tasks/taskStore";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 import { IconButton } from "@/shared/ui/IconButton";
+import type { Project } from "@/features/projects/types";
+
+type ProjectLoaderData = {
+  project: Project;
+  projectId: string;
+};
 
 export const Topbar = () => {
   const location = useLocation();
-  const searchQuery = useTaskStore((state) => state.searchQuery);
+  const matches = useMatches();
+  const projectMatch = matches.find((match) => match.id === "project");
+  const projectData = projectMatch?.data as ProjectLoaderData | undefined;
+  const projectId = projectData?.projectId ?? "mad-dogs-portal";
+  const projectName = projectData?.project.name ?? "Project";
+  const searchQuery = useTaskStore(taskStoreSelectors.searchQuery);
   const setSearchQuery = useTaskStore((state) => state.setSearchQuery);
   const onBoardPage = location.pathname.includes("/board");
 
@@ -15,11 +26,11 @@ export const Topbar = () => {
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:px-4 lg:px-6">
       <div className="flex min-w-0 items-center gap-2 text-slate-600">
         <BriefcaseBusiness className="h-4 w-4 text-slate-500" />
-        <Link to="/projects/mad-dogs-portal/board" className="truncate text-base font-semibold text-slate-700">
+        <Link to={`/projects/${projectId}/board`} className="truncate text-base font-semibold text-slate-700">
           Project
         </Link>
         <span className="text-slate-400">/</span>
-        <span className="truncate text-base font-semibold text-slate-900">Mad Dogs Portal</span>
+        <span className="truncate text-base font-semibold text-slate-900">{projectName}</span>
       </div>
 
       <div className="flex items-center gap-2">

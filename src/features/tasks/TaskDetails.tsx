@@ -1,12 +1,16 @@
 import type { Task } from "@/features/tasks/types";
-import { mockUsers } from "@/features/tasks/mockTasks";
 import { formatDueDate } from "@/shared/lib/date";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Badge } from "@/shared/ui/Badge";
 import { Divider } from "@/shared/ui/Divider";
 
-export const TaskDetails = ({ task }: { task: Task }) => {
-  const assignee = mockUsers.find((user) => user.id === task.assigneeId);
+type TaskDetailsProps = {
+  task: Task;
+  usersById: Record<string, string>;
+};
+
+export const TaskDetails = ({ task, usersById }: TaskDetailsProps) => {
+  const assigneeName = usersById[task.assigneeId];
   const priorityTone = task.priority === "High" ? "red" : task.priority === "Medium" ? "amber" : "slate";
 
   return (
@@ -21,7 +25,10 @@ export const TaskDetails = ({ task }: { task: Task }) => {
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div className="space-y-1">
           <p className="text-xs text-slate-500">Assignee</p>
-          <div className="flex items-center gap-2 text-slate-700">{assignee ? <Avatar name={assignee.name} size="sm" /> : null}{assignee?.name}</div>
+          <div className="flex items-center gap-2 text-slate-700">
+            {assigneeName ? <Avatar name={assigneeName} size="sm" /> : null}
+            {assigneeName}
+          </div>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-slate-500">Priority</p>

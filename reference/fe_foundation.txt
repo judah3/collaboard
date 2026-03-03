@@ -1,0 +1,216 @@
+Refactor Plan: Project Management Frontend Foundation (Feature-by-Feature)
+Summary
+This refactor will convert the current MVP into a scalable, team-friendly architecture before adding new functionality.
+It introduces:
+
+A clear feature delivery flow with explicit gates.
+Structured documentation (ADR + Playbook).
+Nested project routing.
+A frontend “middleware” policy layer (route guards + data interceptors).
+Explicit state boundaries (Zustand for UI state, query/repository layer for data).
+Mandatory quality gates (Unit + Integration + E2E).
+The result should let any developer quickly understand ownership boundaries, extension points, and release confidence criteria.
+
+Phase 0: Baseline and Freeze
+Create a baseline branch and freeze visual churn.
+Capture current screenshots and route behavior as reference fixtures.
+Define “refactor done” criteria:
+no UX regressions on board shell and drawer
+all existing flows preserved
+tests and CI passing
+Acceptance criteria:
+
+Baseline documented with screenshots and route map.
+No new features added during refactor branch.
+Phase 1: Documentation First (ADR + Playbook)
+Add docs/ structure:
+docs/architecture/adr-001-routing-and-layout.md
+docs/architecture/adr-002-state-management-boundaries.md
+docs/architecture/adr-003-frontend-middleware-pattern.md
+docs/playbook/development-flow.md
+docs/playbook/component-guidelines.md
+docs/playbook/testing-and-qc.md
+docs/playbook/project-structure.md
+Define shared vocabulary:
+“feature module”, “page shell”, “UI state”, “server state”, “repository”, “guard”, “policy”
+Add onboarding map:
+where to add components
+where to add routes
+where to add policies
+where to add tests
+Acceptance criteria:
+
+New developer can answer “where does this code go?” from docs alone.
+ADRs contain rationale and rejected alternatives.
+Phase 2: Route and Layout Refactor (Nested Project Routes)
+Move from single board route to nested project route model.
+Target route tree:
+/projects/:projectId
+/projects/:projectId/board
+/projects/:projectId/list (placeholder)
+/projects/:projectId/timeline (placeholder)
+/projects/:projectId/settings (placeholder)
+Introduce ProjectLayout for shared header/toolbar frame.
+Use route-level loaders for project existence checks and initial data wiring.
+Acceptance criteria:
+
+Shared layout is not duplicated across project views.
+Deep links to nested routes work with refresh.
+Unknown projectId is handled by route guard/fallback UI.
+Phase 3: Middleware and Data Access Layer
+Add frontend middleware design:
+Route guard middleware:
+requireProjectExists
+requireFeatureFlag (future-ready)
+Data interceptor layer:
+request normalization
+error mapping
+response shaping
+Create repository contracts:
+ProjectRepository
+TaskRepository
+Keep current mock data, but access it via repository adapters (not direct import from pages).
+Add a query client/provider layer for server-like state orchestration (mock-backed now, API-backed later).
+Acceptance criteria:
+
+Pages consume typed repositories/hooks, not raw mock arrays.
+Error/loading states come from common adapters, not ad hoc page logic.
+Swapping mock adapter to real API requires minimal page changes.
+Phase 4: State Boundary Refactor
+Keep Zustand strictly for local UI interaction state:
+selected task
+drawer open/close
+local UI filters, panel toggles, sort direction
+Move data state to query hooks:
+useProject(projectId)
+useTasks(projectId, filters)
+Normalize store naming and selector usage:
+selector-first hooks
+action naming conventions (setX, openX, closeX, resetX)
+Add context boundaries only for layout-level cross-cutting concerns:
+ProjectLayoutContext for route-scoped metadata and view preferences
+Acceptance criteria:
+
+No duplicated source-of-truth between Zustand and query cache.
+Components remain presentational where possible.
+Data fetching and mutation logic is outside page render bodies.
+Phase 5: Component Architecture and Coding Structure
+Enforce component split rules:
+pages/ orchestrate
+features/ own domain logic and composites
+shared/ui/ pure primitives
+shared/lib/ stateless utilities
+Create per-feature module contracts:
+index.ts exports only public surface
+internal/private components remain unexported
+Introduce naming and folder conventions:
+FeatureNamePanel, FeatureNameCard, FeatureNameToolbar
+colocated types.ts, mappers.ts, selectors.ts
+Define component guidelines:
+max responsibilities per component
+prop design patterns
+accessibility contract checklist
+Acceptance criteria:
+
+Any new feature can be added without editing unrelated modules.
+Imports follow module boundaries and avoid deep relative chains.
+UI primitives remain generic and reusable.
+Phase 6: Testing and Quality Control (Mandatory Gate)
+Testing stack:
+Unit/Component: Vitest + React Testing Library
+Integration with API mocks: MSW
+E2E critical flows: Playwright
+Minimum test matrix:
+Unit:
+utilities (cn, date helpers)
+selectors and mappers
+Zustand store actions
+Integration:
+board filtering combinations (assignee + tag + search)
+task drawer open/close and ESC behavior
+route guard outcomes for valid/invalid project IDs
+E2E:
+open board route
+open/close drawer from card
+apply filters and verify visible cards
+navigate board/list/timeline placeholders via shared project layout
+CI quality gates:
+typecheck
+unit/integration tests
+e2e smoke suite
+build
+Add PR checklist template:
+docs updated
+tests added
+accessibility checks passed
+visual regression screenshots attached
+Acceptance criteria:
+
+No merge without passing automated checks.
+Every new feature includes tests at the required layers.
+Phase 7: Feature-by-Feature Delivery Flow (Future Work Process)
+Feature Brief:
+user story
+scope and non-scope
+UX acceptance criteria
+Design and Spec:
+route impact
+state ownership
+API/repository impact
+edge cases
+Implementation:
+route
+feature module
+tests
+docs updates
+Verification:
+automated checks
+manual QA script
+screenshot diffs
+Review and Handoff:
+ADR updates if architecture changed
+changelog entry
+follow-up issues
+Definition of Done per feature:
+
+behavior complete
+tests complete
+docs complete
+reviewed and merged through CI gate
+Public APIs / Interfaces / Types to Add or Change
+Routing interfaces:
+typed route params for projectId
+nested route layout contracts
+Repositories:
+ProjectRepository interface
+TaskRepository interface
+adapter implementations (mock first)
+Query hooks:
+useProject
+useTasks
+useUpdateTask (for future mutations)
+UI state contracts:
+narrowed TaskUIState for UI-only concerns
+Context contract:
+ProjectLayoutContextValue for route-scoped metadata and controls
+Test Cases and Scenarios
+Store:
+openTask sets selected id and opens drawer
+closeDrawer clears selection
+filter updates preserve unrelated state fields
+Filtering:
+assignee only
+tag only
+combined assignee + tag
+query + filters interaction
+Drawer behavior:
+opens on task click
+closes on close button
+closes on ESC
+mobile/desktop class behavior present
+Routing:
+/projects/:id/board valid render
+invalid :id fallback behavior
+nested route switches preserve project shell
+E2E:
+full user path from board load to task inspect and back

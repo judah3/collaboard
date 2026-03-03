@@ -9,10 +9,11 @@ import { cn } from "@/shared/lib/cn";
 type TaskDrawerProps = {
   isOpen: boolean;
   task: Task | null;
+  users: Array<{ id: string; name: string }>;
   onClose: () => void;
 };
 
-export const TaskDrawer = ({ isOpen, task, onClose }: TaskDrawerProps) => {
+export const TaskDrawer = ({ isOpen, task, users, onClose }: TaskDrawerProps) => {
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -31,6 +32,11 @@ export const TaskDrawer = ({ isOpen, task, onClose }: TaskDrawerProps) => {
   if (!task) {
     return null;
   }
+
+  const usersById = users.reduce<Record<string, string>>((acc, user) => {
+    acc[user.id] = user.name;
+    return acc;
+  }, {});
 
   return (
     <>
@@ -60,8 +66,8 @@ export const TaskDrawer = ({ isOpen, task, onClose }: TaskDrawerProps) => {
         </div>
 
         <div className="flex h-full flex-col gap-6 overflow-y-auto pb-6">
-          <TaskDetails task={task} />
-          <TaskComments task={task} />
+          <TaskDetails task={task} usersById={usersById} />
+          <TaskComments task={task} usersById={usersById} />
         </div>
       </aside>
     </>

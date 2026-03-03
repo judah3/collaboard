@@ -7,10 +7,11 @@ import { IconButton } from "@/shared/ui/IconButton";
 type ColumnProps = {
   status: TaskStatus;
   tasks: Task[];
+  assigneesById: Record<string, string>;
   onTaskClick: (taskId: string) => void;
 };
 
-export const Column = ({ status, tasks, onTaskClick }: ColumnProps) => {
+export const Column = ({ status, tasks, assigneesById, onTaskClick }: ColumnProps) => {
   return (
     <section className="min-w-[320px] rounded-xl bg-slate-50 p-3">
       <div className="mb-4 flex items-center justify-between">
@@ -30,7 +31,7 @@ export const Column = ({ status, tasks, onTaskClick }: ColumnProps) => {
 
       <div className="flex flex-col gap-3">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task.id)} />
+          <TaskCard key={task.id} task={task} assigneeName={assigneesById[task.assigneeId]} onClick={() => onTaskClick(task.id)} />
         ))}
       </div>
     </section>

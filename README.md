@@ -1,4 +1,6 @@
-# Project Management MVP (React + TypeScript + Tailwind)
+# Project Management Frontend Foundation
+
+Refactored MVP frontend using React + TypeScript with nested project routes, middleware guards, repository/query data boundaries, and UI-only Zustand state.
 
 ## Run
 
@@ -7,29 +9,42 @@ npm install
 npm run dev
 ```
 
+## Scripts
+
+```bash
+npm run typecheck
+npm run test
+npm run test:e2e:smoke
+npm run build
+```
+
+## Architecture Highlights
+
+- Nested routes under `/projects/:projectId/*`
+- Shared `ProjectLayout` for project header and view tabs
+- Route-level middleware guards (`requireProjectExists`, `requireFeatureFlag`)
+- Repository contracts and mock adapters for project/task data
+- React Query hooks for server-like data state
+- Zustand reserved for local UI interaction state
+
+## Documentation
+
+- Baseline: `docs/baseline.md`
+- ADRs: `docs/architecture/*`
+- Team playbook: `docs/playbook/*`
+
 ## Included
 
-- App shell with `Sidebar` + `Topbar`
-- Route: `/projects/:projectId/board`
-- Project board page with:
-  - Project header
-  - View toolbar (board/sort/add)
-  - Client-side search + assignee/tag filters
-  - 3-column Kanban board (Backlog, In Progress, Completed)
-- Reusable typed UI primitives (`Button`, `Input`, `Badge`, `Avatar`, `IconButton`, `Divider`)
-- Task cards with priority, tags, assignee, due date, comment/attachment counts
-- Right-side task drawer with details/comments
-  - Click-to-open
-  - ESC-to-close
-  - Desktop docked panel, tablet overlay, mobile fullscreen behavior
-- Zustand store for drawer and filter/search UI state
-- Mock in-code project, members, and tasks data
+- Board page with filter/search/sort UI state
+- Task drawer with ESC close and responsive behavior
+- Placeholder list/timeline/settings routes
+- Unit + integration + e2e smoke test scaffolding
+- CI workflow and PR checklist template
 
-## Intentionally Excluded (MVP scope)
+## Intentionally Excluded
 
-- Authentication and user management backend
-- Realtime collaboration/sync
-- Timeline/Gantt view
+- Backend/API integration
+- Auth and permissions backend
+- Realtime collaboration sync
 - Notifications backend
 - File upload backend
-- API/backend integration
