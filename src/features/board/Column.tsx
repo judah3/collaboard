@@ -12,7 +12,7 @@ type ColumnProps = {
 
 export const Column = ({ status, tasks, onTaskClick }: ColumnProps) => {
   return (
-    <section className="min-w-[320px] rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <section className="min-w-[320px] rounded-xl bg-slate-50 p-3">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-slate-900">{status}</h2>
