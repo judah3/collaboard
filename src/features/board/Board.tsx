@@ -1,12 +1,13 @@
 import {
+  type DragCancelEvent,
   DndContext,
   DragOverlay,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   closestCorners,
-  useDroppable,
   useSensor,
   useSensors
 } from "@dnd-kit/core";
@@ -24,6 +25,7 @@ import { Column } from "@/features/board/Column";
 import { TaskCard } from "@/features/board/TaskCard";
 import { CreateColumnInline } from "@/features/board/components/CreateColumnInline";
 import type { Task } from "@/features/tasks/types";
+import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/Button";
 import { Plus } from "lucide-react";
 
@@ -60,7 +62,6 @@ type BoardProps = {
 
 const getTaskDragId = (taskId: string) => `task-${taskId}`;
 const getColumnDragId = (columnId: string) => `column-${columnId}`;
-const getColumnDropId = (columnId: string) => `column-drop-${columnId}`;
 
 const SortableTaskCard = ({ task, assigneeName, onTaskClick }: { task: Task; assigneeName?: string; onTaskClick: () => void }) => {
   const sortable = useSortable({
@@ -77,6 +78,7 @@ const SortableTaskCard = ({ task, assigneeName, onTaskClick }: { task: Task; ass
     <div
       ref={sortable.setNodeRef}
       data-task-drag-id={task.id}
+      className={cn("transition-transform", sortable.isDragging ? "z-20 scale-[1.02] opacity-70" : "opacity-100")}
       style={{
         transform: CSS.Transform.toString(sortable.transform),
         transition: sortable.transition
@@ -117,25 +119,6 @@ const SortableColumnWrapper = ({
   );
 };
 
-const ColumnDropZone = ({ columnId }: { columnId: string }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: getColumnDropId(columnId),
-    data: { type: "column-drop", columnId }
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      data-column-drop-id={columnId}
-      className={`h-16 rounded-lg border border-dashed px-3 py-2 text-xs text-slate-500 ${
-        isOver ? "border-blue-400 bg-blue-50" : "border-slate-300"
-      }`}
-    >
-      Drop task here
-    </div>
-  );
-};
-
 export const Board = ({
   columns,
   tasksByColumn,
@@ -159,6 +142,8 @@ export const Board = ({
   onReorderTasks
 }: BoardProps) => {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [overDragId, setOverDragId] = useState<string | null>(null);
+  const isTaskDragActive = Boolean(activeDragId?.startsWith("task-"));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -193,10 +178,21 @@ export const Board = ({
 
   const onDragStart = (event: DragStartEvent) => {
     setActiveDragId(String(event.active.id));
+    setOverDragId(null);
+  };
+
+  const onDragOver = (event: DragOverEvent) => {
+    setOverDragId(event.over ? String(event.over.id) : null);
+  };
+
+  const onDragCancel = (_event: DragCancelEvent) => {
+    setActiveDragId(null);
+    setOverDragId(null);
   };
 
   const onDragEnd = (event: DragEndEvent) => {
     setActiveDragId(null);
+    setOverDragId(null);
     const activeId = String(event.active.id);
     const overId = event.over ? String(event.over.id) : null;
 
@@ -265,8 +261,38 @@ export const Board = ({
     });
   };
 
+  const resolveTaskOverColumnId = (overId: string | null) => {
+    if (!overId) {
+      return null;
+    }
+
+    if (overId.startsWith("task-")) {
+      const overTask = findTaskByDragId(overId);
+      return overTask?.columnId ?? null;
+    }
+
+    if (overId.startsWith("column-drop-")) {
+      return overId.replace("column-drop-", "");
+    }
+
+    if (overId.startsWith("column-")) {
+      return overId.replace("column-", "");
+    }
+
+    return null;
+  };
+
+  const activeOverColumnId = isTaskDragActive ? resolveTaskOverColumnId(overDragId) : null;
+
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragCancel={onDragCancel}
+      onDragEnd={onDragEnd}
+    >
       <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
         <div className="flex min-w-0 gap-4 overflow-x-auto pb-2">
           {columns.map((column) => {
@@ -283,6 +309,8 @@ export const Board = ({
                     onCreateTaskOpen={() => onCreateTaskOpen(column.id)}
                     onCreateTaskCancel={onCreateTaskCancel}
                     onCreateTaskSubmit={(title) => onCreateTaskSubmit(column.id, title)}
+                    isTaskDragActive={isTaskDragActive}
+                    isTaskDragOver={activeOverColumnId === column.id}
                     renderSortableTask={(task) => (
                       <SortableTaskCard
                         key={task.id}
@@ -291,7 +319,6 @@ export const Board = ({
                         onTaskClick={() => onTaskClick(task.id)}
                       />
                     )}
-                    dropZone={<ColumnDropZone columnId={column.id} />}
                   />
                 </SortableContext>
               </SortableColumnWrapper>

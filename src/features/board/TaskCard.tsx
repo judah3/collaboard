@@ -21,7 +21,7 @@ export const TaskCard = ({ task, assigneeName, onClick }: TaskCardProps) => {
   return (
     <button
       onClick={onClick}
-      className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all duration-150 hover:border-slate-300 hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+      className="w-full transform-gpu rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900">{task.title}</h3>
