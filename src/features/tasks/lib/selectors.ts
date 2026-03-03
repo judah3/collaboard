@@ -1,4 +1,5 @@
-import type { Task, TaskStatus } from "@/features/tasks/types";
+import type { BoardColumn } from "@/features/board/types";
+import type { Task } from "@/features/tasks/types";
 
 export type TaskUIFilters = {
   searchQuery: string;
@@ -21,18 +22,23 @@ export const applyTaskFilters = (tasks: Task[], filters: TaskUIFilters) => {
   });
 };
 
-export const groupTasksByStatus = (tasks: Task[]) => {
-  const statuses: TaskStatus[] = ["Backlog", "In Progress", "Completed"];
+export const groupTasksByColumn = (tasks: Task[], columns: BoardColumn[]) => {
+  const grouped = columns.reduce<Record<string, Task[]>>((acc, column) => {
+    acc[column.id] = [];
+    return acc;
+  }, {});
 
-  return statuses.reduce(
-    (acc, status) => {
-      acc[status] = tasks.filter((task) => task.status === status);
-      return acc;
-    },
-    {
-      Backlog: [],
-      "In Progress": [],
-      Completed: []
-    } as Record<TaskStatus, Task[]>
-  );
+  for (const task of tasks) {
+    if (!grouped[task.columnId]) {
+      grouped[task.columnId] = [];
+    }
+
+    grouped[task.columnId].push(task);
+  }
+
+  for (const key of Object.keys(grouped)) {
+    grouped[key] = grouped[key].sort((a, b) => a.order - b.order);
+  }
+
+  return grouped;
 };

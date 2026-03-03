@@ -12,6 +12,7 @@
 
 4. Verification
 - Run typecheck, unit/integration tests, e2e smoke, and build.
+- For board work, include DnD manual checks (same-column reorder, cross-column move, column reorder).
 
 5. Review Handoff
 - Include screenshot diffs, update ADR if architecture changed, and create follow-up issues.

@@ -8,7 +8,24 @@ export const mockUsers: User[] = [
   { id: "u5", name: "Ravi K." }
 ];
 
-export const mockTasks: Task[] = [
+type LegacyTaskSeed = Omit<Task, "projectId" | "columnId" | "order"> & {
+  status?: "Backlog" | "In Progress" | "Completed";
+  columnId?: string;
+};
+
+const statusToColumnId = (status?: LegacyTaskSeed["status"]) => {
+  if (status === "In Progress") {
+    return "col-in-progress";
+  }
+
+  if (status === "Completed") {
+    return "col-completed";
+  }
+
+  return "col-backlog";
+};
+
+const legacySeeds: LegacyTaskSeed[] = [
   {
     id: "t1",
     title: "Design new dashboard UI",
@@ -20,9 +37,7 @@ export const mockTasks: Task[] = [
     tags: ["Design", "Frontend"],
     commentsCount: 4,
     attachmentsCount: 1,
-    comments: [
-      { id: "c1", authorId: "u1", message: "Keep cards concise and scan-friendly.", createdAt: "2026-03-01" }
-    ]
+    comments: [{ id: "c1", authorId: "u1", message: "Keep cards concise and scan-friendly.", createdAt: "2026-03-01" }]
   },
   {
     id: "t2",
@@ -35,9 +50,7 @@ export const mockTasks: Task[] = [
     tags: ["Documentation"],
     commentsCount: 2,
     attachmentsCount: 0,
-    comments: [
-      { id: "c2", authorId: "u3", message: "Add quick-start examples.", createdAt: "2026-03-02" }
-    ]
+    comments: [{ id: "c2", authorId: "u3", message: "Add quick-start examples.", createdAt: "2026-03-02" }]
   },
   {
     id: "t3",
@@ -50,9 +63,7 @@ export const mockTasks: Task[] = [
     tags: ["Research"],
     commentsCount: 3,
     attachmentsCount: 2,
-    comments: [
-      { id: "c3", authorId: "u4", message: "Shortlist to two vendors by Friday.", createdAt: "2026-03-03" }
-    ]
+    comments: [{ id: "c3", authorId: "u4", message: "Shortlist to two vendors by Friday.", createdAt: "2026-03-03" }]
   },
   {
     id: "t4",
@@ -65,9 +76,7 @@ export const mockTasks: Task[] = [
     tags: ["Documentation"],
     commentsCount: 1,
     attachmentsCount: 0,
-    comments: [
-      { id: "c4", authorId: "u5", message: "Need input from support leads.", createdAt: "2026-03-02" }
-    ]
+    comments: [{ id: "c4", authorId: "u5", message: "Need input from support leads.", createdAt: "2026-03-02" }]
   },
   {
     id: "t5",
@@ -80,9 +89,7 @@ export const mockTasks: Task[] = [
     tags: ["Design", "UX"],
     commentsCount: 2,
     attachmentsCount: 1,
-    comments: [
-      { id: "c5", authorId: "u2", message: "Will share component specs today.", createdAt: "2026-03-03" }
-    ]
+    comments: [{ id: "c5", authorId: "u2", message: "Will share component specs today.", createdAt: "2026-03-03" }]
   },
   {
     id: "t6",
@@ -95,9 +102,7 @@ export const mockTasks: Task[] = [
     tags: ["Frontend", "Auth"],
     commentsCount: 6,
     attachmentsCount: 1,
-    comments: [
-      { id: "c6", authorId: "u3", message: "Validation flows are now in QA.", createdAt: "2026-03-03" }
-    ]
+    comments: [{ id: "c6", authorId: "u3", message: "Validation flows are now in QA.", createdAt: "2026-03-03" }]
   },
   {
     id: "t7",
@@ -110,9 +115,7 @@ export const mockTasks: Task[] = [
     tags: ["Documentation", "Backend"],
     commentsCount: 2,
     attachmentsCount: 0,
-    comments: [
-      { id: "c7", authorId: "u1", message: "Added state management notes.", createdAt: "2026-03-03" }
-    ]
+    comments: [{ id: "c7", authorId: "u1", message: "Added state management notes.", createdAt: "2026-03-03" }]
   },
   {
     id: "t8",
@@ -125,9 +128,7 @@ export const mockTasks: Task[] = [
     tags: ["Frontend", "State"],
     commentsCount: 5,
     attachmentsCount: 0,
-    comments: [
-      { id: "c8", authorId: "u3", message: "Filtering now supports combined criteria.", createdAt: "2026-03-04" }
-    ]
+    comments: [{ id: "c8", authorId: "u3", message: "Filtering now supports combined criteria.", createdAt: "2026-03-04" }]
   },
   {
     id: "t9",
@@ -140,9 +141,7 @@ export const mockTasks: Task[] = [
     tags: ["QA"],
     commentsCount: 1,
     attachmentsCount: 1,
-    comments: [
-      { id: "c9", authorId: "u5", message: "Need final acceptance criteria.", createdAt: "2026-03-03" }
-    ]
+    comments: [{ id: "c9", authorId: "u5", message: "Need final acceptance criteria.", createdAt: "2026-03-03" }]
   },
   {
     id: "t10",
@@ -155,9 +154,7 @@ export const mockTasks: Task[] = [
     tags: ["Bug"],
     commentsCount: 19,
     attachmentsCount: 1,
-    comments: [
-      { id: "c10", authorId: "u4", message: "Patched and verified in staging.", createdAt: "2026-03-02" }
-    ]
+    comments: [{ id: "c10", authorId: "u4", message: "Patched and verified in staging.", createdAt: "2026-03-02" }]
   },
   {
     id: "t11",
@@ -170,9 +167,7 @@ export const mockTasks: Task[] = [
     tags: ["Research"],
     commentsCount: 16,
     attachmentsCount: 0,
-    comments: [
-      { id: "c11", authorId: "u1", message: "Shared insights with roadmap owners.", createdAt: "2026-03-03" }
-    ]
+    comments: [{ id: "c11", authorId: "u1", message: "Shared insights with roadmap owners.", createdAt: "2026-03-03" }]
   },
   {
     id: "t12",
@@ -185,9 +180,7 @@ export const mockTasks: Task[] = [
     tags: ["Backend", "Infra"],
     commentsCount: 12,
     attachmentsCount: 0,
-    comments: [
-      { id: "c12", authorId: "u4", message: "Cluster health checks are passing.", createdAt: "2026-03-01" }
-    ]
+    comments: [{ id: "c12", authorId: "u4", message: "Cluster health checks are passing.", createdAt: "2026-03-01" }]
   },
   {
     id: "t13",
@@ -200,9 +193,7 @@ export const mockTasks: Task[] = [
     tags: ["Process"],
     commentsCount: 3,
     attachmentsCount: 0,
-    comments: [
-      { id: "c13", authorId: "u2", message: "All follow-up tasks assigned.", createdAt: "2026-03-01" }
-    ]
+    comments: [{ id: "c13", authorId: "u2", message: "All follow-up tasks assigned.", createdAt: "2026-03-01" }]
   },
   {
     id: "t14",
@@ -215,8 +206,21 @@ export const mockTasks: Task[] = [
     tags: ["Accessibility", "Frontend"],
     commentsCount: 2,
     attachmentsCount: 0,
-    comments: [
-      { id: "c14", authorId: "u5", message: "ESC and tab sequence tested.", createdAt: "2026-03-04" }
-    ]
+    comments: [{ id: "c14", authorId: "u5", message: "ESC and tab sequence tested.", createdAt: "2026-03-04" }]
   }
 ];
+
+const columnTaskIndex = new Map<string, number>();
+
+export const mockTasks: Task[] = legacySeeds.map((task) => {
+  const columnId = task.columnId ?? statusToColumnId(task.status);
+  const current = columnTaskIndex.get(columnId) ?? 0;
+  columnTaskIndex.set(columnId, current + 1);
+
+  return {
+    ...task,
+    projectId: "mad-dogs-portal",
+    columnId,
+    order: current
+  };
+});

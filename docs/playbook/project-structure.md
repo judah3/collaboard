@@ -9,6 +9,11 @@
 - Guard: route-level policy check
 - Policy: request/response interceptor or feature flag decision
 
+## Board Model
+- `BoardColumn` is the source of truth for board lanes.
+- `Task.columnId` links each task to a lane.
+- Ordering is explicit via `order` fields on both columns and tasks.
+
 ## Onboarding Map
 - Add components: `src/features/<domain>` or `src/shared/ui`
 - Add routes: `src/app/router.tsx` + `src/app/routes/*`

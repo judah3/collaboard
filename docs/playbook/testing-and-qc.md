@@ -17,3 +17,9 @@
 - Drawer open/close and ESC behavior
 - Route guard behavior for valid/invalid project ids
 - Project route navigation smoke
+- Board mutation workflows:
+  - create column (valid + duplicate)
+  - create task inline
+  - update task from drawer
+  - task/column reorder helpers
+  - drag-and-drop smoke path in e2e

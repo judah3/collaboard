@@ -1,8 +1,10 @@
-import { useEffect } from "react";
-import { X } from "lucide-react";
-import type { Task } from "@/features/tasks/types";
+import { useEffect, useMemo, useRef } from "react";
+import { Check, PencilLine, X } from "lucide-react";
+import type { BoardColumn } from "@/features/board/types";
 import { TaskComments } from "@/features/tasks/TaskComments";
 import { TaskDetails } from "@/features/tasks/TaskDetails";
+import type { Task } from "@/features/tasks/types";
+import { Button } from "@/shared/ui/Button";
 import { IconButton } from "@/shared/ui/IconButton";
 import { cn } from "@/shared/lib/cn";
 
@@ -10,10 +12,62 @@ type TaskDrawerProps = {
   isOpen: boolean;
   task: Task | null;
   users: Array<{ id: string; name: string }>;
+  columns: BoardColumn[];
+  draft: Partial<Task> | null;
+  isSaving: boolean;
+  onStartEdit: (task: Task) => void;
+  onDraftChange: (patch: Partial<Task>) => void;
+  onCancelEdit: () => void;
+  onSave: () => void;
   onClose: () => void;
 };
 
-export const TaskDrawer = ({ isOpen, task, users, onClose }: TaskDrawerProps) => {
+export const TaskDrawer = ({
+  isOpen,
+  task,
+  users,
+  columns,
+  draft,
+  isSaving,
+  onStartEdit,
+  onDraftChange,
+  onCancelEdit,
+  onSave,
+  onClose
+}: TaskDrawerProps) => {
+  const hasDraft = Boolean(draft);
+  const baselineRef = useRef<string>("");
+
+  const usersById = useMemo(
+    () =>
+      users.reduce<Record<string, string>>((acc, user) => {
+        acc[user.id] = user.name;
+        return acc;
+      }, {}),
+    [users]
+  );
+
+  useEffect(() => {
+    if (task) {
+      baselineRef.current = JSON.stringify(task);
+    }
+  }, [task?.id]);
+
+  const mergedTask = task ? ({ ...task, ...(draft ?? {}) } as Task) : null;
+  const hasUnsavedChanges = Boolean(hasDraft && mergedTask && JSON.stringify(mergedTask) !== baselineRef.current);
+
+  const requestClose = () => {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm("You have unsaved changes. Discard them?");
+      if (!confirmed) {
+        return;
+      }
+      onCancelEdit();
+    }
+
+    onClose();
+  };
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -21,22 +75,19 @@ export const TaskDrawer = ({ isOpen, task, users, onClose }: TaskDrawerProps) =>
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        requestClose();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, hasUnsavedChanges]);
 
   if (!task) {
     return null;
   }
 
-  const usersById = users.reduce<Record<string, string>>((acc, user) => {
-    acc[user.id] = user.name;
-    return acc;
-  }, {});
+  const currentTask = mergedTask ?? task;
 
   return (
     <>
@@ -45,7 +96,7 @@ export const TaskDrawer = ({ isOpen, task, users, onClose }: TaskDrawerProps) =>
           "fixed inset-0 z-40 bg-slate-900/30 transition-opacity lg:hidden",
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
-        onClick={onClose}
+        onClick={requestClose}
         aria-label="Close task drawer backdrop"
       />
 
@@ -60,14 +111,33 @@ export const TaskDrawer = ({ isOpen, task, users, onClose }: TaskDrawerProps) =>
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-900">Task Detail</h2>
-          <IconButton onClick={onClose} aria-label="Close task detail drawer">
-            <X className="h-4 w-4" />
-          </IconButton>
+          <div className="flex items-center gap-2">
+            {hasDraft ? (
+              <>
+                <Button variant="primary" onClick={onSave} disabled={isSaving}>
+                  <Check className="h-4 w-4" />
+                  Save
+                </Button>
+                <Button variant="secondary" onClick={onCancelEdit} disabled={isSaving}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button variant="secondary" onClick={() => onStartEdit(task)}>
+                <PencilLine className="h-4 w-4" />
+                Edit
+              </Button>
+            )}
+
+            <IconButton onClick={requestClose} aria-label="Close task detail drawer">
+              <X className="h-4 w-4" />
+            </IconButton>
+          </div>
         </div>
 
         <div className="flex h-full flex-col gap-6 overflow-y-auto pb-6">
-          <TaskDetails task={task} usersById={usersById} />
-          <TaskComments task={task} usersById={usersById} />
+          <TaskDetails draft={currentTask} usersById={usersById} columns={columns} isEditing={hasDraft} onDraftChange={onDraftChange} />
+          <TaskComments task={currentTask} usersById={usersById} />
         </div>
       </aside>
     </>
