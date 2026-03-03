@@ -118,7 +118,7 @@ export const ProjectBoardPage = () => {
           </div>
         </section>
 
-        <div className="pt-6">
+        <div className="bg-slate-50 px-3 py-4 sm:px-4 lg:px-6">
           <Board tasksByStatus={tasksByStatus} onTaskClick={openTask} />
         </div>
       </div>

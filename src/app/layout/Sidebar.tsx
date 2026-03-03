@@ -15,8 +15,8 @@ const projectNav = ["Mad Dogs Portal", "AI CRM", "Website Revamp"];
 
 export const Sidebar = () => {
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
-      <div className="flex h-14 items-center gap-2 border-b border-slate-200 px-6">
+    <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-slate-50 lg:flex lg:flex-col">
+      <div className="flex h-14 items-center gap-2 border-b border-slate-200 bg-slate-50 px-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
           <FolderKanban className="h-4 w-4" />
         </div>
