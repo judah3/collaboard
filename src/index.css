@@ -41,6 +41,10 @@
   .task-insert-animate {
     animation: task-insert-settle 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
+
+  .task-drawer-slide-in {
+    animation: task-drawer-slide-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
 }
 
 @keyframes task-insert-settle {
@@ -57,5 +61,17 @@
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes task-drawer-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
   }
 }

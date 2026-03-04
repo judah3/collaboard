@@ -76,6 +76,7 @@ export const ProjectBoardPage = () => {
   );
 
   const selectedTask = normalizedTasks.find((task) => task.id === selectedTaskId) ?? null;
+  const isTaskDrawerLoading = isDrawerOpen && (isLoadingTasks || (!!selectedTaskId && !selectedTask));
 
   const submitCreateColumn = async () => {
     try {
@@ -246,6 +247,7 @@ export const ProjectBoardPage = () => {
       <TaskDrawer
         isOpen={isDrawerOpen}
         task={selectedTask}
+        isLoading={isTaskDrawerLoading}
         users={project.members}
         columns={columns}
         draft={editingTaskDraft}

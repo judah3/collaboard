@@ -17,7 +17,7 @@ const tabs = [
 
 export const ProjectTabs = ({ projectId, currentView }: ProjectTabsProps) => {
   return (
-    <div className="border-b border-slate-200 bg-white px-3 py-3 sm:px-4 lg:px-6">
+    <div className="bg-white px-3 py-3 sm:px-4 lg:px-6">
       <div className="flex flex-wrap items-center gap-2">
         {tabs.map((tab) => (
           <NavLink
