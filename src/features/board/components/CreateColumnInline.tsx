@@ -30,7 +30,7 @@ export const CreateColumnInline = ({
   const showRequired = touched && !draft.trim();
 
   return (
-    <section className="min-w-[320px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <section className="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
       <h3 className="text-sm font-semibold text-slate-900">New Column</h3>
       <div className="pt-2">
         <Input

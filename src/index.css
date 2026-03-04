@@ -9,6 +9,7 @@
 
   body {
     @apply bg-slate-100 text-slate-900 antialiased;
+    scrollbar-gutter: stable;
   }
 
   * {
@@ -17,10 +18,44 @@
 }
 
 @layer utilities {
+  .no-scrollbar,
+  .no-scrollbar * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar,
+  .no-scrollbar *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
   .line-clamp-2 {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+
+  .task-insert-animate {
+    animation: task-insert-settle 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes task-insert-settle {
+  0% {
+    opacity: 0.8;
+    transform: translateY(-8px) scale(0.985);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(0) scale(1.01);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
