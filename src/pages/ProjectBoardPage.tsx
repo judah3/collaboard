@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Funnel, SlidersHorizontal } from "lucide-react";
+import { Funnel, Plus, SlidersHorizontal } from "lucide-react";
 import { Board } from "@/features/board/Board";
 import { useColumns, useCreateColumn, useReorderColumns } from "@/features/board/hooks/useColumns";
 import { useProjectLayoutContext } from "@/features/projects/context/ProjectLayoutContext";
@@ -9,6 +9,7 @@ import { toTaskPatch } from "@/features/tasks/lib/mappers";
 import { groupTasksByColumn } from "@/features/tasks/lib/selectors";
 import { taskStoreSelectors, useTaskStore } from "@/features/tasks/taskStore";
 import { Select } from "@/shared/ui/Select";
+import { Button } from "@/shared/ui/Button";
 
 export const ProjectBoardPage = () => {
   const { projectId, project } = useProjectLayoutContext();
@@ -131,6 +132,16 @@ export const ProjectBoardPage = () => {
     cancelTaskEdit();
   };
 
+  const openCreateTaskFromToolbar = () => {
+    const targetColumnId = activeCreateTaskColumnId ?? columns[0]?.id;
+    if (!targetColumnId) {
+      return;
+    }
+
+    setTaskCreateError(null);
+    openCreateTaskInline(targetColumnId);
+  };
+
   if (isLoadingColumns || isLoadingTasks) {
     return (
       <section className="bg-slate-50 p-3 sm:p-4 lg:p-6">
@@ -182,6 +193,23 @@ export const ProjectBoardPage = () => {
                 <option value="dueDate">Sort: Due Date</option>
               </Select>
             </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={openCreateTaskFromToolbar} disabled={columns.length === 0}>
+                <Plus className="h-4 w-4" />
+                Add Task
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setColumnCreateError(null);
+                  openCreateColumn();
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Add Column
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -198,19 +226,11 @@ export const ProjectBoardPage = () => {
             isCreatingTask={createTaskMutation.isPending}
             taskCreateError={taskCreateError}
             onTaskClick={openTaskDrawer}
-            onCreateTaskOpen={(columnId) => {
-              setTaskCreateError(null);
-              openCreateTaskInline(columnId);
-            }}
             onCreateTaskCancel={() => {
               setTaskCreateError(null);
               closeCreateTaskInline();
             }}
             onCreateTaskSubmit={submitCreateTask}
-            onCreateColumnOpen={() => {
-              setColumnCreateError(null);
-              openCreateColumn();
-            }}
             onCreateColumnCancel={() => {
               setColumnCreateError(null);
               closeCreateColumn();

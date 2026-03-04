@@ -26,8 +26,6 @@ import { TaskCard } from "@/features/board/TaskCard";
 import { CreateColumnInline } from "@/features/board/components/CreateColumnInline";
 import type { Task } from "@/features/tasks/types";
 import { cn } from "@/shared/lib/cn";
-import { Button } from "@/shared/ui/Button";
-import { Plus } from "lucide-react";
 
 type ReorderTaskPayload = {
   taskId: string;
@@ -49,10 +47,8 @@ type BoardProps = {
   isCreatingTask: boolean;
   taskCreateError: string | null;
   onTaskClick: (taskId: string) => void;
-  onCreateTaskOpen: (columnId: string) => void;
   onCreateTaskCancel: () => void;
   onCreateTaskSubmit: (columnId: string, title: string) => void;
-  onCreateColumnOpen: () => void;
   onCreateColumnCancel: () => void;
   onCreateColumnDraftChange: (value: string) => void;
   onCreateColumnSubmit: () => void;
@@ -211,10 +207,8 @@ export const Board = ({
   isCreatingTask,
   taskCreateError,
   onTaskClick,
-  onCreateTaskOpen,
   onCreateTaskCancel,
   onCreateTaskSubmit,
-  onCreateColumnOpen,
   onCreateColumnCancel,
   onCreateColumnDraftChange,
   onCreateColumnSubmit,
@@ -486,7 +480,6 @@ export const Board = ({
                     isCreateTaskOpen={activeCreateTaskColumnId === column.id}
                     isCreatingTask={isCreatingTask}
                     taskCreateError={taskCreateError}
-                    onCreateTaskOpen={() => onCreateTaskOpen(column.id)}
                     onCreateTaskCancel={onCreateTaskCancel}
                     onCreateTaskSubmit={(title) => onCreateTaskSubmit(column.id, title)}
                     isTaskDragActive={isTaskDragActive}
@@ -518,14 +511,7 @@ export const Board = ({
                 onCancel={onCreateColumnCancel}
               />
             </div>
-          ) : (
-            <section className="shrink-0 rounded-xl bg-slate-50 p-3" style={{ width: columnWidth, minWidth: columnWidth, flexBasis: columnWidth }}>
-              <Button variant="secondary" className="w-full justify-start" onClick={onCreateColumnOpen}>
-                <Plus className="h-4 w-4" />
-                Add Column
-              </Button>
-            </section>
-          )}
+          ) : null}
         </div>
       </SortableContext>
 

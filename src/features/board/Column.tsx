@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import type { BoardColumn } from "@/features/board/types";
 import type { Task } from "@/features/tasks/types";
 import { CreateTaskInline } from "@/features/board/components/CreateTaskInline";
 import { cn } from "@/shared/lib/cn";
-import { Button } from "@/shared/ui/Button";
 import { IconButton } from "@/shared/ui/IconButton";
 
 type ColumnProps = {
@@ -14,7 +13,6 @@ type ColumnProps = {
   isCreateTaskOpen: boolean;
   isCreatingTask: boolean;
   taskCreateError: string | null;
-  onCreateTaskOpen: () => void;
   onCreateTaskCancel: () => void;
   onCreateTaskSubmit: (title: string) => void;
   isTaskDragActive: boolean;
@@ -28,7 +26,6 @@ export const Column = ({
   isCreateTaskOpen,
   isCreatingTask,
   taskCreateError,
-  onCreateTaskOpen,
   onCreateTaskCancel,
   onCreateTaskSubmit,
   isTaskDragActive,
@@ -65,12 +62,7 @@ export const Column = ({
           onCreate={onCreateTaskSubmit}
           onCancel={onCreateTaskCancel}
         />
-      ) : (
-        <Button className="mb-3 w-full justify-start gap-2" variant="secondary" onClick={onCreateTaskOpen}>
-          <Plus className="h-4 w-4" />
-          Add Task
-        </Button>
-      )}
+      ) : null}
 
       <div className="flex flex-col gap-3">
         {tasks.map((task) => renderSortableTask(task))}

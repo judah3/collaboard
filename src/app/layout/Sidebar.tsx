@@ -9,6 +9,7 @@ import {
   Send,
   Users
 } from "lucide-react";
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Button } from "@/shared/ui/Button";
@@ -25,6 +26,8 @@ const mainNav = [
 const projectNav = ["Mad Dogs Portal", "AI CRM", "Website Revamp"];
 
 export const Sidebar = () => {
+  const [isProjectsOpen, setIsProjectsOpen] = useState(true);
+
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 shrink-0 border-r border-slate-200 bg-slate-50 shadow-[2px_0_12px_-10px_rgba(15,23,42,0.28)] lg:flex lg:flex-col">
       <div className="flex h-14 items-center gap-3 border-b border-slate-200 px-6">
@@ -38,50 +41,61 @@ export const Sidebar = () => {
         <nav className="flex flex-col gap-2">
           {mainNav.map((item) => {
             const isTeams = item.label === "Teams";
+            const isProjects = item.label === "Projects";
             return (
-              <button
-                key={item.label}
-                className={cn(
-                  "flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40",
-                  isTeams && "bg-slate-100"
-                )}
-              >
-                <item.icon className="h-4 w-4 text-slate-500" />
-                <span className="flex-1">{item.label}</span>
-                {item.label === "Projects" ? <ChevronDown className="h-4 w-4 text-slate-400" /> : null}
-              </button>
+              <div key={item.label}>
+                <button
+                  className={cn(
+                    "flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+                    isTeams && "bg-slate-100"
+                  )}
+                  onClick={() => {
+                    if (isProjects) {
+                      setIsProjectsOpen((current) => !current);
+                    }
+                  }}
+                >
+                  <item.icon className="h-4 w-4 text-slate-500" />
+                  <span className="flex-1">{item.label}</span>
+                  {isProjects ? (
+                    <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", isProjectsOpen ? "rotate-0" : "-rotate-90")} />
+                  ) : null}
+                </button>
+
+                {isProjects && isProjectsOpen ? (
+                  <div className="mt-2 flex flex-col gap-2 pl-2">
+                    {projectNav.map((project) => (
+                      <NavLink
+                        key={project}
+                        to="/projects/mad-dogs-portal/board"
+                        className={({ isActive }) =>
+                          cn(
+                            "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900",
+                            isActive && project === "Mad Dogs Portal" && "bg-slate-100 text-slate-900"
+                          )
+                        }
+                      >
+                        <span
+                          className={cn(
+                            "inline-flex h-4 w-4 items-center justify-center rounded text-[10px] font-semibold",
+                            project === "Mad Dogs Portal" ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-500"
+                          )}
+                        >
+                          {project === "Mad Dogs Portal" ? "T" : "L"}
+                        </span>
+                        {project}
+                      </NavLink>
+                    ))}
+                    <button className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                      <Plus className="h-4 w-4" />
+                      New Project
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </nav>
-
-        <div className="mt-3 flex flex-col gap-2">
-          {projectNav.map((project) => (
-            <NavLink
-              key={project}
-              to="/projects/mad-dogs-portal/board"
-              className={({ isActive }) =>
-                cn(
-                  "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900",
-                  isActive && project === "Mad Dogs Portal" && "bg-slate-100 text-slate-900"
-                )
-              }
-            >
-              <span
-                className={cn(
-                  "inline-flex h-4 w-4 items-center justify-center rounded text-[10px] font-semibold",
-                  project === "Mad Dogs Portal" ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-500"
-                )}
-              >
-                {project === "Mad Dogs Portal" ? "T" : "L"}
-              </span>
-              {project}
-            </NavLink>
-          ))}
-          <button className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-            <Plus className="h-4 w-4" />
-            New Project
-          </button>
-        </div>
 
         <div className="mt-4 h-px bg-slate-200" />
         <div className="mt-4 flex flex-col gap-2">
