@@ -15,6 +15,8 @@ const explicitBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 const apiOrigin = import.meta.env.VITE_API_ORIGIN?.trim();
 const apiBasePath = import.meta.env.VITE_API_BASE_PATH?.trim() ?? DEFAULT_API_BASE_PATH;
 
-export const API_BASE_URL = explicitBaseUrl
-  ? normalizeSegment(explicitBaseUrl)
-  : `${normalizeOrigin(apiOrigin ?? "")}${normalizePath(apiBasePath)}`;
+export const API_BASE_URL = apiOrigin
+  ? `${normalizeOrigin(apiOrigin)}${normalizePath(apiBasePath)}`
+  : explicitBaseUrl
+    ? normalizeSegment(explicitBaseUrl)
+    : normalizePath(DEFAULT_API_BASE_PATH);
