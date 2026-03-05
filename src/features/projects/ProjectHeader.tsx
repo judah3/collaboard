@@ -18,7 +18,7 @@ export const ProjectHeader = ({ project }: { project: Project }) => {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <button className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+          <button className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none">
             <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-emerald-100 text-emerald-600">
               <Check className="h-3 w-3" />
             </span>
@@ -42,3 +42,5 @@ export const ProjectHeader = ({ project }: { project: Project }) => {
     </section>
   );
 };
+
+

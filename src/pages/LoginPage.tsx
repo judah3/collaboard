@@ -110,7 +110,7 @@ export const LoginPage = () => {
           <label className="inline-flex items-center gap-2 text-sm text-slate-600">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500/40"
+              className="h-4 w-4 rounded border-slate-300 text-blue-600"
               checked={saveCredentials}
               onChange={(event) => setSaveCredentials(event.target.checked)}
               disabled={isSubmitting}
@@ -136,3 +136,5 @@ export const LoginPage = () => {
     </div>
   );
 };
+
+

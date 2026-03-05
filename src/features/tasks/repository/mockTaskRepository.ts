@@ -78,7 +78,7 @@ export const mockTaskRepository: TaskRepository = {
       title,
       description,
       priority: input.priority ?? "Low",
-      assigneeId: input.assigneeId,
+      assigneeId: input.assigneeId ?? "unassigned",
       dueDate: input.dueDate,
       tags,
       commentsCount: 0,

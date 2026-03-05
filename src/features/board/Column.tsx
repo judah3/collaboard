@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { MoreHorizontal } from "lucide-react";
 import type { BoardColumn } from "@/features/board/types";
@@ -15,6 +15,9 @@ type ColumnProps = {
   taskCreateError: string | null;
   onCreateTaskCancel: () => void;
   onCreateTaskSubmit: (title: string) => void;
+  onOpenCreateTask: () => void;
+  onRenameColumn: () => void;
+  onDeleteColumn: () => void;
   isTaskDragActive: boolean;
   isTaskDragOver: boolean;
   renderSortableTask: (task: Task) => ReactNode;
@@ -28,10 +31,14 @@ export const Column = ({
   taskCreateError,
   onCreateTaskCancel,
   onCreateTaskSubmit,
+  onOpenCreateTask,
+  onRenameColumn,
+  onDeleteColumn,
   isTaskDragActive,
   isTaskDragOver,
   renderSortableTask
 }: ColumnProps) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { setNodeRef } = useDroppable({
     id: `column-drop-${column.id}`,
     data: { type: "column-drop", columnId: column.id }
@@ -50,9 +57,52 @@ export const Column = ({
           <h2 className="text-base font-semibold text-slate-900">{column.name}</h2>
           <p className="pt-1 text-sm text-slate-500">{tasks.length} Tasks</p>
         </div>
-        <IconButton aria-label={`${column.name} options`}>
-          <MoreHorizontal className="h-4 w-4" />
-        </IconButton>
+        <div className="relative">
+          <IconButton
+            aria-label={`${column.name} options`}
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsMenuOpen((open) => !open);
+            }}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </IconButton>
+
+          {isMenuOpen ? (
+            <div className="absolute right-0 top-11 z-20 w-40 rounded-lg border border-slate-200 bg-white p-1 shadow-md">
+              <button
+                className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsMenuOpen(false);
+                  onOpenCreateTask();
+                }}
+              >
+                Add Task
+              </button>
+              <button
+                className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsMenuOpen(false);
+                  onRenameColumn();
+                }}
+              >
+                Rename Column
+              </button>
+              <button
+                className="flex w-full items-center rounded-md px-2 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsMenuOpen(false);
+                  onDeleteColumn();
+                }}
+              >
+                Delete Column
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {isCreateTaskOpen ? (

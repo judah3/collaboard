@@ -370,7 +370,7 @@ export const ProjectSettingsPage = () => {
                   <select
                     value={selectedWorkspaceUserId}
                     onChange={(event) => setSelectedWorkspaceUserId(event.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
                     disabled={isImportingMember || isImportingAll || importableWorkspaceMembers.length === 0}
                   >
                     <option value="">Select workspace member</option>
@@ -446,7 +446,7 @@ export const ProjectSettingsPage = () => {
                   value={newTag}
                   onChange={(event) => setNewTag(event.target.value)}
                   placeholder="backend"
-                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
                 />
               </label>
               <Button type="submit" variant="primary" className="h-9">
@@ -468,7 +468,7 @@ export const ProjectSettingsPage = () => {
                       <input
                         value={tagRenameDraft}
                         onChange={(event) => setTagRenameDraft(event.target.value)}
-                        className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700 focus:outline-none"
                         disabled={isRenamingTag}
                       />
                     ) : (
@@ -507,3 +507,5 @@ export const ProjectSettingsPage = () => {
     </section>
   );
 };
+
+

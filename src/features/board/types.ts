@@ -1,4 +1,4 @@
-export type BoardColumnColor = "slate" | "blue" | "green";
+export type BoardColumnColor = string;
 
 export type BoardColumn = {
   id: string;

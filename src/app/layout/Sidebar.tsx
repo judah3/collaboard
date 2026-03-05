@@ -42,7 +42,7 @@ export const Sidebar = () => {
               return (
                 <div key={item.label}>
                   <button
-                    className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                     onClick={() => setIsProjectsOpen((current) => !current)}
                   >
                     <item.icon className="h-4 w-4 text-slate-500" />
@@ -78,7 +78,7 @@ export const Sidebar = () => {
                         <p className="px-3 text-xs text-slate-500">No projects yet.</p>
                       ) : null}
                       <button
-                        className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                         onClick={() => navigate("/workspace")}
                       >
                         <Plus className="h-4 w-4" />
@@ -96,7 +96,7 @@ export const Sidebar = () => {
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+                    "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none",
                     isActive && "bg-slate-100 text-slate-900"
                   )
                 }
@@ -110,11 +110,11 @@ export const Sidebar = () => {
 
         <div className="mt-4 h-px bg-slate-200" />
         <div className="mt-4 flex flex-col gap-2">
-          <button className="flex h-9 w-full items-center gap-2 rounded-lg bg-slate-100 px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+          <button className="flex h-9 w-full items-center gap-2 rounded-lg bg-slate-100 px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-200 focus:outline-none">
             <Plus className="h-4 w-4" />
             Create Task
           </button>
-          <button className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+          <button className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none">
             <Users className="h-4 w-4" />
             Invite Team
           </button>
@@ -123,7 +123,7 @@ export const Sidebar = () => {
         <div className="mt-auto pt-4">
           <div className="mb-3 h-px bg-slate-200" />
           <div className="mb-2 flex items-center justify-between px-2">
-            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none">
               <Plus className="h-4 w-4" />
             </button>
             <div className="flex -space-x-2">
@@ -131,7 +131,7 @@ export const Sidebar = () => {
               <Avatar name="Anna F." size="sm" />
               <Avatar name="Marco T." size="sm" />
             </div>
-            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none">
               <ChevronDown className="h-4 w-4" />
             </button>
           </div>
@@ -140,7 +140,7 @@ export const Sidebar = () => {
               <Plus className="h-4 w-4" />
               Create Task
             </Button>
-            <button className="inline-flex h-10 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <button className="inline-flex h-10 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 focus:outline-none">
               <Send className="h-4 w-4" />
             </button>
           </div>
@@ -149,3 +149,5 @@ export const Sidebar = () => {
     </aside>
   );
 };
+
+

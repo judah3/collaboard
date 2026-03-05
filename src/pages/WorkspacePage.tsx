@@ -311,7 +311,7 @@ export const WorkspacePage = () => {
           <label className="mt-6 block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">Workspace</span>
             <select
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
               value={selectedWorkspaceId}
               onChange={(event) => void onWorkspaceChange(event.target.value)}
               disabled={isLoading || isCreatingProject}
@@ -391,7 +391,7 @@ export const WorkspacePage = () => {
                 <p className="pt-2 text-sm text-slate-600">Choose a workspace and add users from global users list.</p>
               </div>
               <button
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none"
                 onClick={() => setIsManageWorkspaceOpen(false)}
                 aria-label="Close manage workspace"
               >
@@ -404,7 +404,7 @@ export const WorkspacePage = () => {
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium text-slate-700">Workspace</span>
                   <select
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
                     value={selectedWorkspaceId}
                     onChange={(event) => void onWorkspaceChange(event.target.value)}
                     disabled={isLoading || isAddingWorkspaceMember}
@@ -422,7 +422,7 @@ export const WorkspacePage = () => {
                   <label className="block">
                     <span className="mb-1.5 block text-sm font-medium text-slate-700">User</span>
                     <select
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
                       value={selectedUserEmail}
                       onChange={(event) => setSelectedUserEmail(event.target.value)}
                       disabled={!selectedWorkspaceId || isAddingWorkspaceMember || availableUsers.length === 0}
@@ -439,7 +439,7 @@ export const WorkspacePage = () => {
                   <label className="block">
                     <span className="mb-1.5 block text-sm font-medium text-slate-700">Role</span>
                     <select
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
                       value={workspaceMemberRole}
                       onChange={(event) => setWorkspaceMemberRole(event.target.value)}
                       disabled={!selectedWorkspaceId || isAddingWorkspaceMember}
@@ -494,3 +494,5 @@ export const WorkspacePage = () => {
     </section>
   );
 };
+
+

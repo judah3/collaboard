@@ -47,6 +47,9 @@ type BoardProps = {
   isCreatingTask: boolean;
   taskCreateError: string | null;
   onTaskClick: (taskId: string) => void;
+  onOpenCreateTaskInColumn: (columnId: string) => void;
+  onRenameColumn: (column: BoardColumn) => void;
+  onDeleteColumn: (column: BoardColumn, taskCount: number) => void;
   onCreateTaskCancel: () => void;
   onCreateTaskSubmit: (columnId: string, title: string) => void;
   onCreateColumnCancel: () => void;
@@ -207,6 +210,9 @@ export const Board = ({
   isCreatingTask,
   taskCreateError,
   onTaskClick,
+  onOpenCreateTaskInColumn,
+  onRenameColumn,
+  onDeleteColumn,
   onCreateTaskCancel,
   onCreateTaskSubmit,
   onCreateColumnCancel,
@@ -482,6 +488,9 @@ export const Board = ({
                     taskCreateError={taskCreateError}
                     onCreateTaskCancel={onCreateTaskCancel}
                     onCreateTaskSubmit={(title) => onCreateTaskSubmit(column.id, title)}
+                    onOpenCreateTask={() => onOpenCreateTaskInColumn(column.id)}
+                    onRenameColumn={() => onRenameColumn(column)}
+                    onDeleteColumn={() => onDeleteColumn(column, tasks.length)}
                     isTaskDragActive={isTaskDragActive}
                     isTaskDragOver={activeOverColumnId === column.id}
                     renderSortableTask={(task) => (
