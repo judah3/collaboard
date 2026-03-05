@@ -245,6 +245,27 @@ export const addWorkspaceMember = async (
   return member;
 };
 
+export const updateWorkspaceMemberRole = async (
+  accessToken: string,
+  workspaceId: string,
+  userId: string,
+  input: { role: string }
+): Promise<WorkspaceMemberItem> => {
+  const response = await fetch(resolvePath(`/workspaces/${workspaceId}/members/${userId}`), {
+    method: "PATCH",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(input),
+    credentials: "include"
+  });
+
+  await ensureOk(response);
+  const member = mapWorkspaceMember(await response.json());
+  if (!member) {
+    throw new Error("Unexpected workspace member response from server");
+  }
+  return member;
+};
+
 export const listAllUsersForWorkspaceMembers = async (accessToken: string): Promise<WorkspaceUserOption[]> => {
   const response = await fetch(resolvePath("/users"), {
     method: "GET",

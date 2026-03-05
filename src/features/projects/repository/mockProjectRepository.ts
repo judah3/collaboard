@@ -1,7 +1,6 @@
 import { getStoredAuthSession } from "@/features/auth/storage";
 import { listProjectMembers } from "@/features/projects/api";
 import { API_BASE_URL } from "@/shared/config/env";
-import { mockProject } from "@/features/projects/mockProject";
 import { listProjectsByWorkspace, listWorkspaces } from "@/features/workspaces/api";
 import type { ProjectRepository } from "@/features/projects/repository/types";
 import type { Project, ProjectMember } from "@/features/projects/types";
@@ -128,7 +127,8 @@ const toProjectFromWorkspaceList = (payload: { id: string; name: string; workspa
 
 export const mockProjectRepository: ProjectRepository = {
   listProjects: async () => {
-    const seedProjects: Project[] = [mockProject];
+    // Project seed intentionally disabled; project list is now API-driven.
+    const seedProjects: Project[] = [];
 
     try {
       const accessToken = ensureAuthToken();
@@ -153,10 +153,6 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   getProjectById: async (projectId) => {
-    if (projectId === mockProject.id) {
-      return mockProject;
-    }
-
     const accessToken = ensureAuthToken();
     const response = await fetch(resolvePath(`/projects/${projectId}`), {
       method: "GET",

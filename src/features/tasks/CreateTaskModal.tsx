@@ -12,13 +12,16 @@ type CreateTaskModalSubmitPayload = {
   dueDate: string;
   tags: string[];
   priority: TaskPriority;
+  assigneeId?: string;
 };
 
 type CreateTaskModalProps = {
   isOpen: boolean;
   columns: BoardColumn[];
+  assignees: Array<{ id: string; name: string }>;
   availableTags: string[];
   initialColumnId: string | null;
+  initialAssigneeId?: string;
   isSubmitting: boolean;
   errorMessage: string | null;
   onClose: () => void;
@@ -34,8 +37,10 @@ const defaultDueDate = () => {
 export const CreateTaskModal = ({
   isOpen,
   columns,
+  assignees,
   availableTags,
   initialColumnId,
+  initialAssigneeId,
   isSubmitting,
   errorMessage,
   onClose,
@@ -49,6 +54,7 @@ export const CreateTaskModal = ({
   const [newTagInput, setNewTagInput] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [priority, setPriority] = useState<TaskPriority>("Medium");
+  const [assigneeId, setAssigneeId] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const fallbackColumnId = useMemo(() => initialColumnId ?? columns[0]?.id ?? "", [columns, initialColumnId]);
@@ -66,8 +72,9 @@ export const CreateTaskModal = ({
     setNewTagInput("");
     setSelectedTags([]);
     setPriority("Medium");
+    setAssigneeId(initialAssigneeId ?? assignees[0]?.id ?? "");
     setValidationError(null);
-  }, [fallbackColumnId, isOpen]);
+  }, [assignees, fallbackColumnId, initialAssigneeId, isOpen]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -89,7 +96,8 @@ export const CreateTaskModal = ({
       description: description.trim(),
       dueDate,
       tags: selectedTags,
-      priority
+      priority,
+      assigneeId: assigneeId || undefined
     });
   };
 
@@ -160,6 +168,23 @@ export const CreateTaskModal = ({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">Assignee</span>
+            <select
+              value={assigneeId}
+              onChange={(event) => setAssigneeId(event.target.value)}
+              disabled={isSubmitting || assignees.length === 0}
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+            >
+              {assignees.length === 0 ? <option value="">No members available</option> : null}
+              {assignees.map((assignee) => (
+                <option key={assignee.id} value={assignee.id}>
+                  {assignee.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">Tags</span>
             <div className="flex flex-col gap-2">

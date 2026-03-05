@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FolderPlus, Plus, Users, X } from "lucide-react";
 import { useAuth } from "@/features/auth";
@@ -10,6 +10,7 @@ import {
   listProjectsByWorkspace,
   listWorkspaceMembers,
   listWorkspaces,
+  updateWorkspaceMemberRole,
   type WorkspaceMemberItem,
   type ProjectItem,
   type WorkspaceUserOption,
@@ -53,9 +54,19 @@ export const WorkspacePage = () => {
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isAddingWorkspaceMember, setIsAddingWorkspaceMember] = useState(false);
+  const [isSavingWorkspaceRoles, setIsSavingWorkspaceRoles] = useState(false);
+  const [memberRoleDrafts, setMemberRoleDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const usersById = new Map(availableUsers.map((user) => [user.id, user]));
+  const roleOptions = ["OWNER", "ADMIN", "MEMBER"];
+  const changedWorkspaceMemberRoles = useMemo(
+    () =>
+      workspaceMembers
+        .map((member) => ({ member, nextRole: memberRoleDrafts[member.userId] ?? member.role }))
+        .filter(({ member, nextRole }) => nextRole !== member.role),
+    [memberRoleDrafts, workspaceMembers]
+  );
 
   const refreshProjects = async (workspaceId: string) => {
     if (!accessToken || !workspaceId) {
@@ -77,6 +88,12 @@ export const WorkspacePage = () => {
     try {
       const members = await listWorkspaceMembers(accessToken, workspaceId);
       setWorkspaceMembers(members);
+      setMemberRoleDrafts(
+        members.reduce<Record<string, string>>((acc, member) => {
+          acc[member.userId] = member.role;
+          return acc;
+        }, {})
+      );
     } finally {
       setIsLoadingMembers(false);
     }
@@ -255,6 +272,39 @@ export const WorkspacePage = () => {
       setError(addError instanceof Error ? addError.message : "Failed to add workspace member");
     } finally {
       setIsAddingWorkspaceMember(false);
+    }
+  };
+
+  const onWorkspaceMemberRoleChange = (userId: string, role: string) => {
+    setMemberRoleDrafts((previous) => ({ ...previous, [userId]: role }));
+  };
+
+  const onSaveWorkspaceMemberRoles = async () => {
+    if (!accessToken || !selectedWorkspaceId) {
+      setError("Select a workspace first.");
+      return;
+    }
+
+    if (changedWorkspaceMemberRoles.length === 0) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsSavingWorkspaceRoles(true);
+
+    try {
+      await Promise.all(
+        changedWorkspaceMemberRoles.map(({ member, nextRole }) =>
+          updateWorkspaceMemberRole(accessToken, selectedWorkspaceId, member.userId, { role: nextRole })
+        )
+      );
+      await refreshWorkspaceMembers(selectedWorkspaceId);
+      setSuccess(`Updated ${changedWorkspaceMemberRoles.length} member role(s).`);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Failed to update workspace member role");
+    } finally {
+      setIsSavingWorkspaceRoles(false);
     }
   };
 
@@ -465,22 +515,51 @@ export const WorkspacePage = () => {
               </section>
 
               <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Members in selected workspace</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Members in selected workspace</p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-8 px-3 text-xs"
+                    disabled={isSavingWorkspaceRoles || changedWorkspaceMemberRoles.length === 0}
+                    onClick={() => void onSaveWorkspaceMemberRoles()}
+                  >
+                    {isSavingWorkspaceRoles ? "Saving..." : "Save"}
+                  </Button>
+                </div>
                 {isLoadingMembers ? <p className="pt-2 text-sm text-slate-600">Loading members...</p> : null}
                 {!isLoadingMembers && workspaceMembers.length === 0 ? (
                   <p className="pt-2 text-sm text-slate-600">No members yet.</p>
                 ) : null}
                 {!isLoadingMembers && workspaceMembers.length > 0 ? (
                   <ul className="pt-2 space-y-2">
-              {workspaceMembers.map((member) => (
-                <li key={member.id} className="flex items-center justify-between text-sm text-slate-700">
-                  <span>
-                    {(member.name ?? usersById.get(member.userId)?.name ?? member.userId)} (
-                    {member.email ?? usersById.get(member.userId)?.email ?? "no-email"})
-                  </span>
-                  <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{member.role}</span>
-                </li>
-              ))}
+                    {workspaceMembers.map((member) => {
+                      const selectedRole = memberRoleDrafts[member.userId] ?? member.role;
+                      const roleValues = roleOptions.includes(member.role) ? roleOptions : [member.role, ...roleOptions];
+
+                      return (
+                        <li key={member.id} className="flex items-center justify-between gap-3 text-sm text-slate-700">
+                          <span>
+                            {(member.name ?? usersById.get(member.userId)?.name ?? member.userId)} (
+                            {member.email ?? usersById.get(member.userId)?.email ?? "no-email"})
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <select
+                              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 focus:outline-none"
+                              value={selectedRole}
+                              onChange={(event) => onWorkspaceMemberRoleChange(member.userId, event.target.value)}
+                              disabled={isSavingWorkspaceRoles}
+                            >
+                              {roleValues.map((role) => (
+                                <option key={role} value={role}>
+                                  {role}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : null}
               </section>

@@ -57,6 +57,7 @@ export const ProjectBoardPage = () => {
   const [columnCreateError, setColumnCreateError] = useState<string | null>(null);
   const [columnActionError, setColumnActionError] = useState<string | null>(null);
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null);
+  const [taskUpdateError, setTaskUpdateError] = useState<string | null>(null);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [taskModalColumnId, setTaskModalColumnId] = useState<string | null>(null);
 
@@ -72,13 +73,24 @@ export const ProjectBoardPage = () => {
 
   const tasksByColumn = useMemo(() => groupTasksByColumn(normalizedTasks, columns), [columns, normalizedTasks]);
 
+  const projectAssignees = useMemo(
+    () =>
+      project.members.map((member) => ({
+        id: member.userId ?? member.id,
+        legacyId: member.id,
+        name: member.name
+      })),
+    [project.members]
+  );
+
   const assigneesById = useMemo(
     () =>
-      project.members.reduce<Record<string, string>>((acc, member) => {
-        acc[member.id] = member.name;
+      projectAssignees.reduce<Record<string, string>>((acc, assignee) => {
+        acc[assignee.id] = assignee.name;
+        acc[assignee.legacyId] = assignee.name;
         return acc;
       }, {}),
-    [project.members]
+    [projectAssignees]
   );
 
   const selectedTask = normalizedTasks.find((task) => task.id === selectedTaskId) ?? null;
@@ -87,7 +99,8 @@ export const ProjectBoardPage = () => {
     typeof value === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   const defaultAssigneeId =
-    project.members.map((member) => member.userId ?? member.id).find((candidate) => isUuid(candidate)) ?? undefined;
+    projectAssignees.map((member) => member.id).find((candidate) => isUuid(candidate)) ?? undefined;
+  const assigneeOptions = projectAssignees.map((member) => ({ id: member.id, name: member.name }));
 
   const submitCreateColumn = async () => {
     try {
@@ -129,6 +142,7 @@ export const ProjectBoardPage = () => {
     dueDate: string;
     tags: string[];
     priority: "High" | "Medium" | "Low";
+    assigneeId?: string;
   }) => {
     try {
       setTaskCreateError(null);
@@ -136,7 +150,7 @@ export const ProjectBoardPage = () => {
       await createTaskMutation.mutateAsync({
         columnId: payload.columnId,
         title: payload.title,
-        assigneeId: defaultAssigneeId,
+        assigneeId: payload.assigneeId ?? defaultAssigneeId,
         dueDate: payload.dueDate,
         priority: payload.priority,
         description: payload.description,
@@ -154,17 +168,16 @@ export const ProjectBoardPage = () => {
       return;
     }
 
-    const nextAssigneeId = editingTaskDraft.assigneeId ?? selectedTask.assigneeId;
-    if (!project.members.some((member) => member.id === nextAssigneeId)) {
-      return;
+    try {
+      setTaskUpdateError(null);
+      await updateTaskMutation.mutateAsync({
+        taskId: selectedTask.id,
+        patch: toTaskPatch(editingTaskDraft)
+      });
+      cancelTaskEdit();
+    } catch (error) {
+      setTaskUpdateError(error instanceof Error ? error.message : "Failed to update task");
     }
-
-    await updateTaskMutation.mutateAsync({
-      taskId: selectedTask.id,
-      patch: toTaskPatch(editingTaskDraft)
-    });
-
-    cancelTaskEdit();
   };
 
   const openCreateTaskFromToolbar = () => {
@@ -245,7 +258,7 @@ export const ProjectBoardPage = () => {
                 icon={<Funnel className="h-4 w-4" />}
               >
                 <option value="all">Filter by Assignee</option>
-                {project.members.map((member) => (
+                {projectAssignees.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name}
                   </option>
@@ -335,15 +348,24 @@ export const ProjectBoardPage = () => {
         isOpen={isDrawerOpen}
         task={selectedTask}
         isLoading={isTaskDrawerLoading}
-        users={project.members}
+        users={projectAssignees}
         columns={columns}
+        availableTags={allTags}
         draft={editingTaskDraft}
         isSaving={updateTaskMutation.isPending}
-        onStartEdit={startTaskEdit}
+        errorMessage={taskUpdateError}
+        onStartEdit={(task) => {
+          setTaskUpdateError(null);
+          startTaskEdit(task);
+        }}
         onDraftChange={updateTaskDraft}
-        onCancelEdit={cancelTaskEdit}
+        onCancelEdit={() => {
+          setTaskUpdateError(null);
+          cancelTaskEdit();
+        }}
         onSave={saveTaskDraft}
         onClose={() => {
+          setTaskUpdateError(null);
           cancelTaskEdit();
           closeTaskDrawer();
         }}
@@ -352,8 +374,10 @@ export const ProjectBoardPage = () => {
       <CreateTaskModal
         isOpen={isCreateTaskModalOpen}
         columns={columns}
+        assignees={assigneeOptions}
         availableTags={allTags}
         initialColumnId={taskModalColumnId}
+        initialAssigneeId={defaultAssigneeId}
         isSubmitting={createTaskMutation.isPending}
         errorMessage={taskCreateError}
         onClose={() => {

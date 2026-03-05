@@ -13,7 +13,7 @@
 - `POST /api/v1/auth/dev/login` (public; dev/test mode)
 - `POST /api/v1/auth/register` (public; production local auth)
 - `POST /api/v1/auth/login` (public; production local auth)
-- `POST /api/v1/auth/refresh` (public)
+- `POST /api/v1/auth/refresh` (public; currently disabled and returns `403`)
 - `POST /api/v1/auth/logout` (auth required)
 - `GET /api/v1/auth/me` (auth required)
 - `GET /api/v1/users` (auth required; global user list)
@@ -24,6 +24,7 @@
 - `GET /api/v1/workspaces/{workspace_id}` (auth required)
 - `PUT /api/v1/workspaces/{workspace_id}` (auth required)
 - `PATCH /api/v1/workspaces/{workspace_id}` (auth required)
+- `POST /api/v1/workspaces/{workspace_id}/save` (auth required; save alias for update)
 - `GET /api/v1/workspaces/{workspace_id}/members` (auth required)
 - `POST /api/v1/workspaces/{workspace_id}/members` (auth required)
 - `PATCH /api/v1/workspaces/{workspace_id}/members/{user_id}` (auth required)
@@ -35,9 +36,14 @@
 - `GET /api/v1/projects/{project_id}` (auth required)
 - `PUT /api/v1/projects/{project_id}` (auth required)
 - `PATCH /api/v1/projects/{project_id}` (auth required)
+- `POST /api/v1/projects/{project_id}/save` (auth required; save alias for update)
 - `DELETE /api/v1/projects/{project_id}` (auth required; soft delete)
 - `GET /api/v1/projects/{project_id}/members` (auth required)
 - `POST /api/v1/projects/{project_id}/members` (auth required)
+
+`GET /api/v1/projects/{project_id}/members` response now includes:
+- `user`: user UUID
+- `member`: `{ id, name, email, avatar_url }`
 
 ### Board Columns
 - `GET /api/v1/projects/{project_id}/columns` (auth required)
