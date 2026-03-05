@@ -2,6 +2,7 @@ import type { Project } from "@/features/projects/types";
 
 export const mockProject: Project = {
   id: "mad-dogs-portal",
+  workspaceId: "mad-dogs-portal",
   name: "Project Sample",
   description: "Internal CRM and AI call platform",
   dueDate: "2026-04-10",

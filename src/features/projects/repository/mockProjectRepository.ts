@@ -1,4 +1,5 @@
 import { getStoredAuthSession } from "@/features/auth/storage";
+import { listProjectMembers } from "@/features/projects/api";
 import { API_BASE_URL } from "@/shared/config/env";
 import { mockProject } from "@/features/projects/mockProject";
 import { listProjectsByWorkspace, listWorkspaces } from "@/features/workspaces/api";
@@ -42,13 +43,15 @@ const resolvePath = (path: string) => `${API_BASE_URL}${path}`;
 const ensureOk = async (response: Response) => {
   if (!response.ok) {
     const fallback = `Request failed with status ${response.status}`;
+    let detail: string | undefined;
     try {
       const body = (await response.json()) as JsonRecord;
-      const detail = readString(body, ["detail", "message", "error"]);
-      throw new Error(detail ?? fallback);
+      detail = readString(body, ["detail", "message", "error"]);
     } catch {
-      throw new Error(fallback);
+      // Ignore JSON parse failures and fall back to generic status message.
     }
+
+    throw new Error(detail ? `${detail} (status ${response.status})` : fallback);
   }
 };
 
@@ -63,16 +66,23 @@ const mapMember = (payload: unknown): ProjectMember | null => {
     return null;
   }
 
-  const user = isRecord(payload.user) ? payload.user : payload;
-  const id = readString(user, ["id", "user_id", "member_id"]);
-  const name = readString(user, ["name", "full_name", "email"]);
+  const memberRecord = isRecord(payload.member) ? payload.member : null;
+  const rawUser = payload.user;
+  const user = memberRecord ?? (isRecord(rawUser) ? rawUser : payload);
+  const userId =
+    (typeof rawUser === "string" && rawUser.trim() ? rawUser : undefined) ??
+    readString(user, ["id", "user_id", "member_id", "user"]);
+  const id = readString(payload, ["id", "member_id", "project_member_id"]) ?? userId;
+  const name = readString(user, ["name", "full_name", "email"]) ?? (userId ? `User ${userId.slice(0, 8)}` : undefined);
+  const email = readString(user, ["email"]) ?? null;
+  const avatarUrl = readString(user, ["avatar_url", "avatarUrl"]) ?? null;
   const role = readString(payload, ["role"]) ?? readString(user, ["role"]) ?? "Member";
 
   if (!id || !name) {
     return null;
   }
 
-  return { id, name, role };
+  return { id, userId: userId ?? id, name, email, avatarUrl, role };
 };
 
 const mapProject = (payload: unknown): Project | null => {
@@ -88,6 +98,7 @@ const mapProject = (payload: unknown): Project | null => {
   }
 
   const description = readString(payload, ["description"]) ?? "";
+  const workspaceId = readString(payload, ["workspace", "workspace_id"]);
   const dueDate = readString(payload, ["due_date", "dueDate"]) ?? "2026-12-31";
   const progress = Math.max(0, Math.min(100, readNumber(payload, ["progress"]) ?? 0));
 
@@ -96,6 +107,7 @@ const mapProject = (payload: unknown): Project | null => {
 
   return {
     id,
+    workspaceId,
     name,
     description,
     dueDate,
@@ -104,8 +116,9 @@ const mapProject = (payload: unknown): Project | null => {
   };
 };
 
-const toProjectFromWorkspaceList = (payload: { id: string; name: string }): Project => ({
+const toProjectFromWorkspaceList = (payload: { id: string; name: string; workspaceId: string }): Project => ({
   id: payload.id,
+  workspaceId: payload.workspaceId,
   name: payload.name,
   description: "",
   dueDate: "2026-12-31",
@@ -154,6 +167,21 @@ export const mockProjectRepository: ProjectRepository = {
     });
 
     await ensureOk(response);
-    return mapProject(await response.json());
+    const project = mapProject(await response.json());
+
+    if (!project) {
+      return null;
+    }
+
+    try {
+      const members = await listProjectMembers(accessToken, projectId);
+      if (members.length > 0) {
+        return { ...project, members };
+      }
+    } catch {
+      // Fall back to project payload members if dedicated members endpoint fails.
+    }
+
+    return project;
   }
 };

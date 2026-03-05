@@ -16,6 +16,7 @@
 - `POST /api/v1/auth/refresh` (public)
 - `POST /api/v1/auth/logout` (auth required)
 - `GET /api/v1/auth/me` (auth required)
+- `GET /api/v1/users` (auth required; global user list)
 
 ### Workspaces
 - `GET /api/v1/workspaces` (auth required)
@@ -82,6 +83,7 @@ Task list query params:
 - Member user: `member@collaboard.local` (`name: Member`)
 - Workspace: `Mad Dogs Portal` (`slug: mad-dogs-portal`)
 - Project: `Mad Dogs Portal`
+- Test scope: retain only `Mad Dogs Portal` project for UI validation.
 - Columns: `Backlog`, `In Progress`, `Completed`
 - Task: `Revamping login page`
 - Comment: `Please complete by end of week.`
@@ -112,16 +114,19 @@ Task list query params:
 ```json
 {
   "email": "prod.user@test.local",
-  "password": "StrongPass123"
+  "password": "StrongPass123",
+  "save_credentials": true
 }
 ```
+
+`save_credentials` (or `remember_me`) is optional. When set to `true`, backend issues a longer-lived refresh token.
 
 ### 2) Create workspace
 `POST /api/v1/workspaces`
 ```json
 {
-  "name": "Workspace Alpha",
-  "slug": "workspace-alpha"
+  "name": "Mad Dogs Portal",
+  "slug": "mad-dogs-portal-ui-test"
 }
 ```
 
@@ -138,8 +143,8 @@ Task list query params:
 `POST /api/v1/workspaces/{workspace_id}/projects`
 ```json
 {
-  "name": "Project A",
-  "description": "Internal project",
+  "name": "Mad Dogs Portal",
+  "description": "Internal CRM and AI Call Platform",
   "due_date": "2026-06-30",
   "progress": 0,
   "archived": false

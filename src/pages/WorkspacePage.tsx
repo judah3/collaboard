@@ -1,13 +1,18 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FolderPlus, Plus } from "lucide-react";
+import { FolderPlus, Plus, Users, X } from "lucide-react";
 import { useAuth } from "@/features/auth";
 import {
+  addWorkspaceMember,
   createProject,
   createWorkspace,
+  listAllUsersForWorkspaceMembers,
   listProjectsByWorkspace,
+  listWorkspaceMembers,
   listWorkspaces,
+  type WorkspaceMemberItem,
   type ProjectItem,
+  type WorkspaceUserOption,
   type WorkspaceItem
 } from "@/features/workspaces/api";
 import { Button } from "@/shared/ui/Button";
@@ -35,14 +40,22 @@ export const WorkspacePage = () => {
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberItem[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<WorkspaceUserOption[]>([]);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectDueDate, setProjectDueDate] = useState(defaultDueDate);
+  const [selectedUserEmail, setSelectedUserEmail] = useState("");
+  const [workspaceMemberRole, setWorkspaceMemberRole] = useState("MEMBER");
+  const [isManageWorkspaceOpen, setIsManageWorkspaceOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isAddingWorkspaceMember, setIsAddingWorkspaceMember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const usersById = new Map(availableUsers.map((user) => [user.id, user]));
 
   const refreshProjects = async (workspaceId: string) => {
     if (!accessToken || !workspaceId) {
@@ -52,6 +65,21 @@ export const WorkspacePage = () => {
 
     const items = await listProjectsByWorkspace(accessToken, workspaceId);
     setProjects(items);
+  };
+
+  const refreshWorkspaceMembers = async (workspaceId: string) => {
+    if (!accessToken || !workspaceId) {
+      setWorkspaceMembers([]);
+      return;
+    }
+
+    setIsLoadingMembers(true);
+    try {
+      const members = await listWorkspaceMembers(accessToken, workspaceId);
+      setWorkspaceMembers(members);
+    } finally {
+      setIsLoadingMembers(false);
+    }
   };
 
   useEffect(() => {
@@ -66,10 +94,13 @@ export const WorkspacePage = () => {
       try {
         const workspaceItems = await listWorkspaces(accessToken);
         setWorkspaces(workspaceItems);
+        const users = await listAllUsersForWorkspaceMembers(accessToken);
+        setAvailableUsers(users);
 
         const firstWorkspaceId = workspaceItems[0]?.id ?? "";
         setSelectedWorkspaceId(firstWorkspaceId);
         await refreshProjects(firstWorkspaceId);
+        await refreshWorkspaceMembers(firstWorkspaceId);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Failed to load workspace data");
       } finally {
@@ -117,6 +148,7 @@ export const WorkspacePage = () => {
       setWorkspaceName("");
       setWorkspaceSlug("");
       await refreshProjects(workspace.id);
+      await refreshWorkspaceMembers(workspace.id);
       setSuccess(`Workspace "${workspace.name}" created.`);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Failed to create workspace");
@@ -170,13 +202,75 @@ export const WorkspacePage = () => {
 
     try {
       await refreshProjects(workspaceId);
+      await refreshWorkspaceMembers(workspaceId);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load projects");
+      setError(loadError instanceof Error ? loadError.message : "Failed to load workspace data");
+    }
+  };
+
+  const openManageWorkspace = () => {
+    setError(null);
+    setSuccess(null);
+    setIsManageWorkspaceOpen(true);
+  };
+
+  const onAddWorkspaceMember = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!accessToken || !selectedWorkspaceId) {
+      setError("Select a workspace first.");
+      return;
+    }
+
+    if (!selectedUserEmail) {
+      setError("Select a user to add.");
+      return;
+    }
+
+    const selectedUser = availableUsers.find((user) => user.email === selectedUserEmail);
+    const existing = workspaceMembers.some(
+      (member) =>
+        member.email?.toLowerCase() === selectedUserEmail.toLowerCase() ||
+        (!!selectedUser && member.userId === selectedUser.id)
+    );
+    if (existing) {
+      setError("Selected user is already a workspace member.");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsAddingWorkspaceMember(true);
+
+    try {
+      await addWorkspaceMember(accessToken, selectedWorkspaceId, {
+        email: selectedUserEmail,
+        role: workspaceMemberRole
+      });
+      await refreshWorkspaceMembers(selectedWorkspaceId);
+      setSuccess(`Member "${selectedUserEmail}" added to workspace.`);
+      setSelectedUserEmail("");
+      setWorkspaceMemberRole("MEMBER");
+    } catch (addError) {
+      setError(addError instanceof Error ? addError.message : "Failed to add workspace member");
+    } finally {
+      setIsAddingWorkspaceMember(false);
     }
   };
 
   return (
     <section className="bg-slate-50 p-3 sm:p-4 lg:p-6">
+      <div className="mb-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
+        <div>
+          <h1 className="text-base font-semibold text-slate-900">Workspace Management</h1>
+          <p className="pt-1 text-sm text-slate-600">Create workspaces and projects, then manage workspace members.</p>
+        </div>
+        <Button variant="primary" className="h-10" onClick={openManageWorkspace} disabled={workspaces.length === 0}>
+          <Users className="h-4 w-4" />
+          Manage Workspace
+        </Button>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-6">
           <h1 className="text-base font-semibold text-slate-900">Create Workspace</h1>
@@ -287,6 +381,113 @@ export const WorkspacePage = () => {
           </div>
         </div>
       </div>
+
+      {isManageWorkspaceOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-3 sm:p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-5xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900">Manage Workspace</h2>
+                <p className="pt-2 text-sm text-slate-600">Choose a workspace and add users from global users list.</p>
+              </div>
+              <button
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                onClick={() => setIsManageWorkspaceOpen(false)}
+                aria-label="Close manage workspace"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <section className="rounded-xl border border-slate-200 bg-white p-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-slate-700">Workspace</span>
+                  <select
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    value={selectedWorkspaceId}
+                    onChange={(event) => void onWorkspaceChange(event.target.value)}
+                    disabled={isLoading || isAddingWorkspaceMember}
+                  >
+                    <option value="">Select workspace</option>
+                    {workspaces.map((workspace) => (
+                      <option key={workspace.id} value={workspace.id}>
+                        {workspace.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <form className="mt-4 space-y-4" onSubmit={onAddWorkspaceMember}>
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-slate-700">User</span>
+                    <select
+                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      value={selectedUserEmail}
+                      onChange={(event) => setSelectedUserEmail(event.target.value)}
+                      disabled={!selectedWorkspaceId || isAddingWorkspaceMember || availableUsers.length === 0}
+                    >
+                      <option value="">Select user</option>
+                      {availableUsers.map((user) => (
+                        <option key={`${user.id}-${user.email}`} value={user.email}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Role</span>
+                    <select
+                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      value={workspaceMemberRole}
+                      onChange={(event) => setWorkspaceMemberRole(event.target.value)}
+                      disabled={!selectedWorkspaceId || isAddingWorkspaceMember}
+                    >
+                      <option value="MEMBER">MEMBER</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </select>
+                  </label>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    className="h-9 w-full"
+                    disabled={!selectedWorkspaceId || isAddingWorkspaceMember || !selectedUserEmail}
+                  >
+                    {isAddingWorkspaceMember ? "Adding..." : "Add Member"}
+                  </Button>
+                </form>
+
+                {availableUsers.length === 0 ? (
+                  <p className="mt-3 text-sm text-slate-600">No users found from global users endpoint.</p>
+                ) : null}
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Members in selected workspace</p>
+                {isLoadingMembers ? <p className="pt-2 text-sm text-slate-600">Loading members...</p> : null}
+                {!isLoadingMembers && workspaceMembers.length === 0 ? (
+                  <p className="pt-2 text-sm text-slate-600">No members yet.</p>
+                ) : null}
+                {!isLoadingMembers && workspaceMembers.length > 0 ? (
+                  <ul className="pt-2 space-y-2">
+              {workspaceMembers.map((member) => (
+                <li key={member.id} className="flex items-center justify-between text-sm text-slate-700">
+                  <span>
+                    {(member.name ?? usersById.get(member.userId)?.name ?? member.userId)} (
+                    {member.email ?? usersById.get(member.userId)?.email ?? "no-email"})
+                  </span>
+                  <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{member.role}</span>
+                </li>
+              ))}
+                  </ul>
+                ) : null}
+              </section>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
       {success ? <p className="mt-4 text-sm text-green-700">{success}</p> : null}

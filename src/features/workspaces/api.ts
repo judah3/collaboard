@@ -14,6 +14,20 @@ export type ProjectItem = {
   workspaceId: string;
 };
 
+export type WorkspaceMemberItem = {
+  id: string;
+  userId: string;
+  email: string | null;
+  name: string | null;
+  role: string;
+};
+
+export type WorkspaceUserOption = {
+  id: string;
+  email: string;
+  name: string;
+};
+
 const jsonHeaders = {
   "Content-Type": "application/json"
 };
@@ -47,13 +61,15 @@ const readArray = (payload: unknown): unknown[] => {
 const ensureOk = async (response: Response) => {
   if (!response.ok) {
     const fallback = `Request failed with status ${response.status}`;
+    let detail: string | undefined;
     try {
       const body = (await response.json()) as JsonRecord;
-      const detail = readString(body, ["detail", "message", "error"]);
-      throw new Error(detail ?? fallback);
+      detail = readString(body, ["detail", "message", "error"]);
     } catch {
-      throw new Error(fallback);
+      // Ignore JSON parse failures and fall back to generic status message.
     }
+
+    throw new Error(detail ? `${detail} (status ${response.status})` : fallback);
   }
 };
 
@@ -91,6 +107,44 @@ const mapProject = (payload: unknown, workspaceId: string): ProjectItem | null =
   }
 
   return { id, name, workspaceId };
+};
+
+const mapWorkspaceMember = (payload: unknown): WorkspaceMemberItem | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const membershipId = readString(payload, ["id", "membership_id"]);
+  const rawUser = payload.user;
+  const user = isRecord(rawUser) ? rawUser : payload;
+  const userId =
+    (typeof rawUser === "string" && rawUser.trim() ? rawUser : undefined) ??
+    readString(user, ["id", "user_id", "member_id", "user"]);
+  const email = readString(user, ["email"]) ?? null;
+  const name = readString(user, ["name", "full_name", "email"]) ?? null;
+  const role = readString(payload, ["role"]) ?? readString(user, ["role"]) ?? "MEMBER";
+
+  if (!membershipId || !userId) {
+    return null;
+  }
+
+  return { id: membershipId, userId, email, name, role };
+};
+
+const mapGlobalUser = (payload: unknown): WorkspaceUserOption | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const id = readString(payload, ["id", "user_id"]);
+  const email = readString(payload, ["email"]);
+  const name = readString(payload, ["name", "full_name", "email"]);
+
+  if (!id || !email || !name) {
+    return null;
+  }
+
+  return { id, email, name };
 };
 
 export const listWorkspaces = async (accessToken: string): Promise<WorkspaceItem[]> => {
@@ -154,4 +208,51 @@ export const createProject = async (
     throw new Error("Unexpected project response from server");
   }
   return project;
+};
+
+export const listWorkspaceMembers = async (
+  accessToken: string,
+  workspaceId: string
+): Promise<WorkspaceMemberItem[]> => {
+  const response = await fetch(resolvePath(`/workspaces/${workspaceId}/members`), {
+    method: "GET",
+    headers: authHeaders(accessToken),
+    credentials: "include"
+  });
+
+  await ensureOk(response);
+  const payload = await response.json();
+  return readArray(payload).map(mapWorkspaceMember).filter((item): item is WorkspaceMemberItem => item !== null);
+};
+
+export const addWorkspaceMember = async (
+  accessToken: string,
+  workspaceId: string,
+  input: { email: string; role: string }
+): Promise<WorkspaceMemberItem> => {
+  const response = await fetch(resolvePath(`/workspaces/${workspaceId}/members`), {
+    method: "POST",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(input),
+    credentials: "include"
+  });
+
+  await ensureOk(response);
+  const member = mapWorkspaceMember(await response.json());
+  if (!member) {
+    throw new Error("Unexpected workspace member response from server");
+  }
+  return member;
+};
+
+export const listAllUsersForWorkspaceMembers = async (accessToken: string): Promise<WorkspaceUserOption[]> => {
+  const response = await fetch(resolvePath("/users"), {
+    method: "GET",
+    headers: authHeaders(accessToken),
+    credentials: "include"
+  });
+
+  await ensureOk(response);
+  const payload = await response.json();
+  return readArray(payload).map(mapGlobalUser).filter((item): item is WorkspaceUserOption => item !== null);
 };
