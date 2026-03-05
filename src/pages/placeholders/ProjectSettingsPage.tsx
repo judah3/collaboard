@@ -5,12 +5,15 @@ import { addProjectMember } from "@/features/projects/api";
 import { useProjectLayoutContext } from "@/features/projects/context/ProjectLayoutContext";
 import type { ProjectMember } from "@/features/projects/types";
 import { listAllUsersForWorkspaceMembers, listWorkspaceMembers, type WorkspaceMemberItem, type WorkspaceUserOption } from "@/features/workspaces/api";
-import { useTasks } from "@/features/tasks/hooks/useTasks";
+import { useTasks, useUpdateTask } from "@/features/tasks/hooks/useTasks";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Badge } from "@/shared/ui/Badge";
 import { Button } from "@/shared/ui/Button";
 
 const SAMPLE_PROJECT_ID = "mad-dogs-portal";
+const TAG_STORAGE_KEY_PREFIX = "pm_project_tags_";
+const normalizeTag = (tag: string) => tag.trim();
+const normalizeTagKey = (tag: string) => normalizeTag(tag).toLowerCase();
 
 export const ProjectSettingsPage = () => {
   const { project, projectId } = useProjectLayoutContext();
@@ -20,6 +23,7 @@ export const ProjectSettingsPage = () => {
     assigneeFilter: "all",
     tagFilter: "all"
   });
+  const updateTaskMutation = useUpdateTask(projectId);
   const [members, setMembers] = useState<ProjectMember[]>(project.members);
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberItem[]>([]);
   const [workspaceUsers, setWorkspaceUsers] = useState<WorkspaceUserOption[]>([]);
@@ -28,10 +32,49 @@ export const ProjectSettingsPage = () => {
   const [isImportingAll, setIsImportingAll] = useState(false);
   const [isLoadingWorkspaceMembers, setIsLoadingWorkspaceMembers] = useState(false);
   const [workspaceMemberError, setWorkspaceMemberError] = useState<string | null>(null);
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [tagError, setTagError] = useState<string | null>(null);
+  const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [tagRenameDraft, setTagRenameDraft] = useState("");
+  const [isRenamingTag, setIsRenamingTag] = useState(false);
 
   useEffect(() => {
     setMembers(project.members);
   }, [project.members]);
+
+  useEffect(() => {
+    const key = `${TAG_STORAGE_KEY_PREFIX}${projectId}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      setCustomTags([]);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) {
+        setCustomTags([]);
+        localStorage.removeItem(key);
+        return;
+      }
+
+      const tags = parsed
+        .filter((item): item is string => typeof item === "string")
+        .map((tag) => normalizeTag(tag))
+        .filter((tag) => !!tag);
+
+      setCustomTags(Array.from(new Set(tags)));
+    } catch {
+      setCustomTags([]);
+      localStorage.removeItem(key);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    const key = `${TAG_STORAGE_KEY_PREFIX}${projectId}`;
+    localStorage.setItem(key, JSON.stringify(customTags));
+  }, [customTags, projectId]);
 
   useEffect(() => {
     const loadWorkspaceMembers = async () => {
@@ -60,7 +103,7 @@ export const ProjectSettingsPage = () => {
     void loadWorkspaceMembers();
   }, [accessToken, project.workspaceId]);
 
-  const tagStats = useMemo(() => {
+  const taskTagStats = useMemo(() => {
     const usage = new Map<string, number>();
 
     for (const task of tasks) {
@@ -71,6 +114,17 @@ export const ProjectSettingsPage = () => {
 
     return Array.from(usage.entries()).sort((a, b) => b[1] - a[1]);
   }, [tasks]);
+
+  const tagStats = useMemo(() => {
+    const usage = new Map<string, number>(taskTagStats);
+    for (const tag of customTags) {
+      if (!usage.has(tag)) {
+        usage.set(tag, 0);
+      }
+    }
+
+    return Array.from(usage.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [customTags, taskTagStats]);
 
   const workspaceUsersById = useMemo(() => new Map(workspaceUsers.map((user) => [user.id, user])), [workspaceUsers]);
 
@@ -99,6 +153,88 @@ export const ProjectSettingsPage = () => {
     () => workspaceMembers.filter((member) => !isAlreadyProjectMember(member)),
     [members, workspaceMembers, workspaceUsersById]
   );
+
+  const onCreateTag = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setTagError(null);
+
+    const candidate = normalizeTag(newTag);
+    if (!candidate) {
+      setTagError("Tag name is required.");
+      return;
+    }
+
+    if (candidate.length > 24) {
+      setTagError("Tag name must be 24 characters or fewer.");
+      return;
+    }
+
+    const exists = tagStats.some(([tag]) => normalizeTagKey(tag) === normalizeTagKey(candidate));
+    if (exists) {
+      setTagError("Tag already exists.");
+      return;
+    }
+
+    setCustomTags((current) => [...current, candidate]);
+    setNewTag("");
+  };
+
+  const startRenameTag = (tag: string) => {
+    setTagError(null);
+    setEditingTag(tag);
+    setTagRenameDraft(tag);
+  };
+
+  const cancelRenameTag = () => {
+    setEditingTag(null);
+    setTagRenameDraft("");
+  };
+
+  const saveRenameTag = async (oldTag: string) => {
+    setTagError(null);
+    const nextTag = normalizeTag(tagRenameDraft);
+
+    if (!nextTag) {
+      setTagError("Tag name is required.");
+      return;
+    }
+
+    if (nextTag.length > 24) {
+      setTagError("Tag name must be 24 characters or fewer.");
+      return;
+    }
+
+    const isSame = normalizeTagKey(nextTag) === normalizeTagKey(oldTag);
+    const duplicate = tagStats.some(([tag]) => normalizeTagKey(tag) === normalizeTagKey(nextTag));
+    if (!isSame && duplicate) {
+      setTagError("Another tag with this name already exists.");
+      return;
+    }
+
+    setIsRenamingTag(true);
+    try {
+      const affectedTasks = tasks.filter((task) => task.tags.some((tag) => normalizeTagKey(tag) === normalizeTagKey(oldTag)));
+      for (const task of affectedTasks) {
+        const nextTags = task.tags.map((tag) => (normalizeTagKey(tag) === normalizeTagKey(oldTag) ? nextTag : tag));
+        await updateTaskMutation.mutateAsync({
+          taskId: task.id,
+          patch: { tags: nextTags }
+        });
+      }
+
+      setCustomTags((current) => {
+        const mapped = current.map((tag) => (normalizeTagKey(tag) === normalizeTagKey(oldTag) ? nextTag : tag));
+        return Array.from(new Set(mapped));
+      });
+
+      setEditingTag(null);
+      setTagRenameDraft("");
+    } catch (error) {
+      setTagError(error instanceof Error ? error.message : "Failed to rename tag");
+    } finally {
+      setIsRenamingTag(false);
+    }
+  };
 
   const onImportWorkspaceMember = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -302,15 +438,67 @@ export const ProjectSettingsPage = () => {
           </div>
 
           {isLoading ? <p className="mt-4 text-sm text-slate-600">Loading tags...</p> : null}
-
-          {!isLoading && tagStats.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-600">No tags found in tasks yet.</p>
+          {!isLoading ? (
+            <form className="mt-4 flex items-end gap-2" onSubmit={onCreateTag}>
+              <label className="block flex-1">
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">Create tag</span>
+                <input
+                  value={newTag}
+                  onChange={(event) => setNewTag(event.target.value)}
+                  placeholder="backend"
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+              </label>
+              <Button type="submit" variant="primary" className="h-9">
+                Add Tag
+              </Button>
+            </form>
           ) : null}
 
+          {tagError ? <p className="mt-3 text-sm text-red-600">{tagError}</p> : null}
+
+          {!isLoading && tagStats.length === 0 ? <p className="mt-4 text-sm text-slate-600">No tags yet.</p> : null}
+
           {!isLoading && tagStats.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 space-y-2">
               {tagStats.map(([tag, count]) => (
-                <Badge key={tag} label={`${tag} (${count})`} tone="slate" />
+                <div key={tag} className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                  <div className="flex items-center gap-2">
+                    {editingTag === tag ? (
+                      <input
+                        value={tagRenameDraft}
+                        onChange={(event) => setTagRenameDraft(event.target.value)}
+                        className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        disabled={isRenamingTag}
+                      />
+                    ) : (
+                      <Badge label={tag} tone="slate" />
+                    )}
+                    <span className="text-xs text-slate-500">{count} task(s)</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {editingTag === tag ? (
+                      <>
+                        <Button
+                          variant="secondary"
+                          className="h-8"
+                          onClick={() => void saveRenameTag(tag)}
+                          disabled={isRenamingTag}
+                        >
+                          {isRenamingTag ? "Saving..." : "Save"}
+                        </Button>
+                        <Button variant="ghost" className="h-8" onClick={cancelRenameTag} disabled={isRenamingTag}>
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="secondary" className="h-8" onClick={() => startRenameTag(tag)}>
+                        Rename
+                      </Button>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           ) : null}
