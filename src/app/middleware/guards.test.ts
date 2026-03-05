@@ -4,7 +4,7 @@ import { requireFeatureFlag, requireProjectExists } from "@/app/middleware/guard
 describe("route guards", () => {
   it("returns project when project exists", async () => {
     const project = await requireProjectExists("mad-dogs-portal");
-    expect(project.name).toBe("Mad Dogs Portal");
+    expect(project.name).toBe("Project Sample");
   });
 
   it("throws response for missing project", async () => {

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getMe, loginWithDev, logout as logoutRequest } from "@/features/auth/api";
+import { getMe, loginWithLocal, logout as logoutRequest, registerWithLocal } from "@/features/auth/api";
 import { clearStoredAuthSession, getStoredAuthSession, saveAuthSession } from "@/features/auth/storage";
 import type { AuthSession, AuthUser } from "@/features/auth/types";
 
@@ -9,7 +9,8 @@ type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
   accessToken: string | null;
-  login: (email: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, name: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -44,8 +45,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     void hydrateAuth();
   }, []);
 
-  const login = async (email: string, name: string) => {
-    const nextSession = await loginWithDev({ email, name });
+  const login = async (email: string, password: string) => {
+    const nextSession = await loginWithLocal({ email, password });
+    setSession(nextSession);
+    saveAuthSession(nextSession);
+    setStatus("authenticated");
+  };
+
+  const register = async (email: string, name: string, password: string) => {
+    const nextSession = await registerWithLocal({ email, name, password });
     setSession(nextSession);
     saveAuthSession(nextSession);
     setStatus("authenticated");
@@ -71,6 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user: session?.user ?? null,
       accessToken: session?.accessToken ?? null,
       login,
+      register,
       logout
     }),
     [session?.accessToken, session?.user, status]

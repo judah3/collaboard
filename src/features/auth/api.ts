@@ -6,6 +6,17 @@ type DevLoginPayload = {
   name: string;
 };
 
+type LocalRegisterPayload = {
+  email: string;
+  name: string;
+  password: string;
+};
+
+type LocalLoginPayload = {
+  email: string;
+  password: string;
+};
+
 type GoogleLoginPayload = {
   idToken: string;
 };
@@ -49,20 +60,20 @@ const readUser = (record: JsonRecord): AuthUser | undefined => {
 
 const parseSession = (payload: unknown): AuthSession => {
   if (!isRecord(payload)) {
-    throw new Error("Unexpected login response from server");
+    throw new Error("Unexpected auth response from server");
   }
 
   const accessToken = readString(payload, ["access", "access_token", "accessToken", "token"]);
 
   if (!accessToken) {
-    throw new Error("Missing access token in login response");
+    throw new Error("Missing access token in auth response");
   }
 
   const refreshToken = readString(payload, ["refresh", "refresh_token", "refreshToken"]);
   const user = readUser(payload);
 
   if (!user) {
-    throw new Error("Missing user profile in login response");
+    throw new Error("Missing user profile in auth response");
   }
 
   return {
@@ -87,6 +98,30 @@ const ensureOk = async (response: Response) => {
 
 export const loginWithDev = async (payload: DevLoginPayload): Promise<AuthSession> => {
   const response = await fetch(resolvePath("/auth/dev/login"), {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload),
+    credentials: "include"
+  });
+
+  await ensureOk(response);
+  return parseSession(await response.json());
+};
+
+export const registerWithLocal = async (payload: LocalRegisterPayload): Promise<AuthSession> => {
+  const response = await fetch(resolvePath("/auth/register"), {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload),
+    credentials: "include"
+  });
+
+  await ensureOk(response);
+  return parseSession(await response.json());
+};
+
+export const loginWithLocal = async (payload: LocalLoginPayload): Promise<AuthSession> => {
+  const response = await fetch(resolvePath("/auth/login"), {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify(payload),

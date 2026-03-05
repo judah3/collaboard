@@ -19,13 +19,6 @@ export const DashboardPage = () => (
   />
 );
 
-export const WorkspacePage = () => (
-  <PlaceholderAppPage
-    title="Workspace"
-    description="Workspace overview and controls are placeholders for the next phase."
-  />
-);
-
 export const MyTasksPage = () => (
   <PlaceholderAppPage
     title="My Tasks"

@@ -18,7 +18,7 @@ export const Topbar = () => {
   const { user, logout } = useAuth();
   const projectMatch = matches.find((match) => match.id === "project");
   const projectData = projectMatch?.data as ProjectLoaderData | undefined;
-  const projectId = projectData?.projectId ?? "mad-dogs-portal";
+  const projectId = projectData?.projectId ?? "";
   const projectName = projectData?.project.name ?? "Workspace";
   const searchQuery = useTaskStore(taskStoreSelectors.searchQuery);
   const setSearchQuery = useTaskStore((state) => state.setSearchQuery);
@@ -31,9 +31,13 @@ export const Topbar = () => {
         <BriefcaseBusiness className="h-4 w-4 text-slate-500" />
         {showProjectBreadcrumb ? (
           <>
-            <Link to={`/projects/${projectId}/board`} className="truncate text-base font-semibold text-slate-700">
-              Project
-            </Link>
+            {projectId ? (
+              <Link to={`/projects/${projectId}/board`} className="truncate text-base font-semibold text-slate-700">
+                Project
+              </Link>
+            ) : (
+              <span className="truncate text-base font-semibold text-slate-700">Project</span>
+            )}
             <span className="text-slate-400">/</span>
             <span className="truncate text-base font-semibold text-slate-900">{projectName}</span>
           </>

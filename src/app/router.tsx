@@ -6,11 +6,13 @@ import { ProjectLayout } from "@/app/routes/ProjectLayout";
 import { ProjectRouteErrorPage } from "@/app/routes/ProjectRouteErrorPage";
 import { listViewLoader, projectLoader, settingsViewLoader, timelineViewLoader } from "@/app/routes/loaders";
 import { LoginPage } from "@/pages/LoginPage";
+import { RegisterPage } from "@/pages/RegisterPage";
 import { ProjectBoardPage } from "@/pages/ProjectBoardPage";
-import { DashboardPage, MyTasksPage, TeamsPage, WorkspacePage } from "@/pages/placeholders/AppSectionPlaceholderPages";
+import { DashboardPage, MyTasksPage, TeamsPage } from "@/pages/placeholders/AppSectionPlaceholderPages";
 import { ProjectListPage } from "@/pages/placeholders/ProjectListPage";
 import { ProjectSettingsPage } from "@/pages/placeholders/ProjectSettingsPage";
 import { ProjectTimelinePage } from "@/pages/placeholders/ProjectTimelinePage";
+import { WorkspacePage } from "@/pages/WorkspacePage";
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +20,14 @@ export const router = createBrowserRouter([
     element: (
       <PublicOnlyRoute>
         <LoginPage />
+      </PublicOnlyRoute>
+    )
+  },
+  {
+    path: "/register",
+    element: (
+      <PublicOnlyRoute>
+        <RegisterPage />
       </PublicOnlyRoute>
     )
   },

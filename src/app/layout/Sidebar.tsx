@@ -1,6 +1,7 @@
 import { ChevronDown, FolderKanban, FolderOpen, House, LayoutDashboard, ListChecks, Plus, Send, Users } from "lucide-react";
 import { type ComponentType, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useProjects } from "@/features/projects/hooks/useProjects";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/lib/cn";
@@ -16,18 +17,14 @@ const mainNav: MainNavItem[] = [
   { label: "Workspace", to: "/workspace", icon: House },
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
   { label: "My Tasks", to: "/my-tasks", icon: ListChecks },
-  { label: "Projects", to: "/projects/mad-dogs-portal/board", icon: FolderOpen, isProjectSection: true },
+  { label: "Projects", to: "/workspace", icon: FolderOpen, isProjectSection: true },
   { label: "Teams", to: "/teams", icon: Users }
 ];
 
-const projectNav = [
-  { label: "Mad Dogs Portal", to: "/projects/mad-dogs-portal/board", badge: "T", primary: true },
-  { label: "AI CRM", to: "/projects/mad-dogs-portal/board", badge: "L" },
-  { label: "Website Revamp", to: "/projects/mad-dogs-portal/board", badge: "L" }
-];
-
 export const Sidebar = () => {
+  const navigate = useNavigate();
   const [isProjectsOpen, setIsProjectsOpen] = useState(true);
+  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
 
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 shrink-0 border-r border-slate-200 bg-slate-50 shadow-[2px_0_12px_-10px_rgba(15,23,42,0.28)] lg:flex lg:flex-col">
@@ -57,29 +54,33 @@ export const Sidebar = () => {
 
                   {isProjectsOpen ? (
                     <div className="mt-2 flex flex-col gap-2 pl-2">
-                      {projectNav.map((project) => (
+                      {isLoadingProjects ? (
+                        <p className="px-3 text-xs text-slate-500">Loading projects...</p>
+                      ) : null}
+                      {projects.map((project) => (
                         <NavLink
-                          key={project.label}
-                          to={project.to}
+                          key={project.id}
+                          to={`/projects/${project.id}/board`}
                           className={({ isActive }) =>
                             cn(
                               "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900",
-                              isActive && project.primary && "bg-slate-100 text-slate-900"
+                              isActive && "bg-slate-100 text-slate-900"
                             )
                           }
                         >
-                          <span
-                            className={cn(
-                              "inline-flex h-4 w-4 items-center justify-center rounded text-[10px] font-semibold",
-                              project.primary ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-500"
-                            )}
-                          >
-                            {project.badge}
+                          <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-blue-500 text-[10px] font-semibold text-white">
+                            {project.name.slice(0, 1).toUpperCase()}
                           </span>
-                          {project.label}
+                          <span className="truncate">{project.name}</span>
                         </NavLink>
                       ))}
-                      <button className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                      {!isLoadingProjects && projects.length === 0 ? (
+                        <p className="px-3 text-xs text-slate-500">No projects yet.</p>
+                      ) : null}
+                      <button
+                        className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        onClick={() => navigate("/workspace")}
+                      >
                         <Plus className="h-4 w-4" />
                         New Project
                       </button>
