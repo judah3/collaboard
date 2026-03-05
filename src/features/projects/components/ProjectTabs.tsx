@@ -24,7 +24,7 @@ export const ProjectTabs = ({ projectId, currentView }: ProjectTabsProps) => {
             key={tab.key}
             to={`/projects/${projectId}/${tab.path}`}
             className={cn(
-              "inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+              "inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors focus:outline-none",
               currentView === tab.key
                 ? "border-blue-600 bg-blue-600 text-white"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -38,3 +38,5 @@ export const ProjectTabs = ({ projectId, currentView }: ProjectTabsProps) => {
     </div>
   );
 };
+
+

@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Funnel, Plus, SlidersHorizontal } from "lucide-react";
 import { Board } from "@/features/board/Board";
-import { useColumns, useCreateColumn, useReorderColumns } from "@/features/board/hooks/useColumns";
+import { useColumns, useCreateColumn, useDeleteColumn, useReorderColumns, useUpdateColumn } from "@/features/board/hooks/useColumns";
+import type { BoardColumn } from "@/features/board/types";
 import { useProjectLayoutContext } from "@/features/projects/context/ProjectLayoutContext";
+import { CreateTaskModal } from "@/features/tasks/CreateTaskModal";
 import { TaskDrawer } from "@/features/tasks/TaskDrawer";
 import { useCreateTask, useReorderTasks, useTasks, useUpdateTask } from "@/features/tasks/hooks/useTasks";
 import { toTaskPatch } from "@/features/tasks/lib/mappers";
@@ -29,7 +31,6 @@ export const ProjectBoardPage = () => {
   const setSortKey = useTaskStore((state) => state.setSortKey);
   const openTaskDrawer = useTaskStore((state) => state.openTaskDrawer);
   const closeTaskDrawer = useTaskStore((state) => state.closeTaskDrawer);
-  const openCreateTaskInline = useTaskStore((state) => state.openCreateTaskInline);
   const closeCreateTaskInline = useTaskStore((state) => state.closeCreateTaskInline);
   const openCreateColumn = useTaskStore((state) => state.openCreateColumn);
   const closeCreateColumn = useTaskStore((state) => state.closeCreateColumn);
@@ -47,12 +48,18 @@ export const ProjectBoardPage = () => {
 
   const createColumnMutation = useCreateColumn(projectId);
   const reorderColumnsMutation = useReorderColumns(projectId);
+  const updateColumnMutation = useUpdateColumn(projectId);
+  const deleteColumnMutation = useDeleteColumn(projectId);
   const createTaskMutation = useCreateTask(projectId);
   const updateTaskMutation = useUpdateTask(projectId);
   const reorderTasksMutation = useReorderTasks(projectId);
 
   const [columnCreateError, setColumnCreateError] = useState<string | null>(null);
+  const [columnActionError, setColumnActionError] = useState<string | null>(null);
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null);
+  const [taskUpdateError, setTaskUpdateError] = useState<string | null>(null);
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [taskModalColumnId, setTaskModalColumnId] = useState<string | null>(null);
 
   const allTags = useMemo(() => Array.from(new Set(tasks.flatMap((task) => task.tags))).sort(), [tasks]);
 
@@ -66,17 +73,34 @@ export const ProjectBoardPage = () => {
 
   const tasksByColumn = useMemo(() => groupTasksByColumn(normalizedTasks, columns), [columns, normalizedTasks]);
 
+  const projectAssignees = useMemo(
+    () =>
+      project.members.map((member) => ({
+        id: member.userId ?? member.id,
+        legacyId: member.id,
+        name: member.name
+      })),
+    [project.members]
+  );
+
   const assigneesById = useMemo(
     () =>
-      project.members.reduce<Record<string, string>>((acc, member) => {
-        acc[member.id] = member.name;
+      projectAssignees.reduce<Record<string, string>>((acc, assignee) => {
+        acc[assignee.id] = assignee.name;
+        acc[assignee.legacyId] = assignee.name;
         return acc;
       }, {}),
-    [project.members]
+    [projectAssignees]
   );
 
   const selectedTask = normalizedTasks.find((task) => task.id === selectedTaskId) ?? null;
   const isTaskDrawerLoading = isDrawerOpen && (isLoadingTasks || (!!selectedTaskId && !selectedTask));
+  const isUuid = (value?: string) =>
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const defaultAssigneeId =
+    projectAssignees.map((member) => member.id).find((candidate) => isUuid(candidate)) ?? undefined;
+  const assigneeOptions = projectAssignees.map((member) => ({ id: member.id, name: member.name }));
 
   const submitCreateColumn = async () => {
     try {
@@ -91,10 +115,6 @@ export const ProjectBoardPage = () => {
   const submitCreateTask = async (columnId: string, title: string) => {
     try {
       setTaskCreateError(null);
-      const defaultAssignee = project.members[0]?.id;
-      if (!defaultAssignee) {
-        throw new Error("No project member available for assignee");
-      }
 
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 7);
@@ -102,7 +122,7 @@ export const ProjectBoardPage = () => {
       await createTaskMutation.mutateAsync({
         columnId,
         title,
-        assigneeId: defaultAssignee,
+        assigneeId: defaultAssigneeId,
         dueDate: dueDate.toISOString().slice(0, 10),
         priority: "Low",
         description: "",
@@ -115,22 +135,49 @@ export const ProjectBoardPage = () => {
     }
   };
 
+  const submitCreateTaskFromModal = async (payload: {
+    columnId: string;
+    title: string;
+    description: string;
+    dueDate: string;
+    tags: string[];
+    priority: "High" | "Medium" | "Low";
+    assigneeId?: string;
+  }) => {
+    try {
+      setTaskCreateError(null);
+
+      await createTaskMutation.mutateAsync({
+        columnId: payload.columnId,
+        title: payload.title,
+        assigneeId: payload.assigneeId ?? defaultAssigneeId,
+        dueDate: payload.dueDate,
+        priority: payload.priority,
+        description: payload.description,
+        tags: payload.tags
+      });
+
+      setIsCreateTaskModalOpen(false);
+    } catch (error) {
+      setTaskCreateError(error instanceof Error ? error.message : "Failed to create task");
+    }
+  };
+
   const saveTaskDraft = async () => {
     if (!selectedTask || !editingTaskDraft) {
       return;
     }
 
-    const nextAssigneeId = editingTaskDraft.assigneeId ?? selectedTask.assigneeId;
-    if (!project.members.some((member) => member.id === nextAssigneeId)) {
-      return;
+    try {
+      setTaskUpdateError(null);
+      await updateTaskMutation.mutateAsync({
+        taskId: selectedTask.id,
+        patch: toTaskPatch(editingTaskDraft)
+      });
+      cancelTaskEdit();
+    } catch (error) {
+      setTaskUpdateError(error instanceof Error ? error.message : "Failed to update task");
     }
-
-    await updateTaskMutation.mutateAsync({
-      taskId: selectedTask.id,
-      patch: toTaskPatch(editingTaskDraft)
-    });
-
-    cancelTaskEdit();
   };
 
   const openCreateTaskFromToolbar = () => {
@@ -140,7 +187,47 @@ export const ProjectBoardPage = () => {
     }
 
     setTaskCreateError(null);
-    openCreateTaskInline(targetColumnId);
+    setTaskModalColumnId(targetColumnId);
+    setIsCreateTaskModalOpen(true);
+  };
+
+  const openCreateTaskForColumn = (columnId: string) => {
+    setTaskCreateError(null);
+    setTaskModalColumnId(columnId);
+    setIsCreateTaskModalOpen(true);
+  };
+
+  const renameColumn = async (column: BoardColumn) => {
+    const nextName = window.prompt("Rename column", column.name);
+    if (!nextName || nextName.trim() === column.name) {
+      return;
+    }
+
+    try {
+      setColumnActionError(null);
+      await updateColumnMutation.mutateAsync({ columnId: column.id, input: { name: nextName.trim() } });
+    } catch (error) {
+      setColumnActionError(error instanceof Error ? error.message : "Failed to rename column");
+    }
+  };
+
+  const deleteColumn = async (column: BoardColumn, taskCount: number) => {
+    if (taskCount > 0) {
+      setColumnActionError("Move tasks out of this column before deleting it.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete column "${column.name}"?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setColumnActionError(null);
+      await deleteColumnMutation.mutateAsync(column.id);
+    } catch (error) {
+      setColumnActionError(error instanceof Error ? error.message : "Failed to delete column");
+    }
   };
 
   if (isLoadingColumns || isLoadingTasks) {
@@ -171,7 +258,7 @@ export const ProjectBoardPage = () => {
                 icon={<Funnel className="h-4 w-4" />}
               >
                 <option value="all">Filter by Assignee</option>
-                {project.members.map((member) => (
+                {projectAssignees.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name}
                   </option>
@@ -215,6 +302,16 @@ export const ProjectBoardPage = () => {
         </section>
 
         <div className="bg-slate-50 px-3 py-4 sm:px-4 lg:px-6">
+          {columnActionError ? (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{columnActionError}</div>
+          ) : null}
+
+          {columns.length === 0 ? (
+            <div className="mb-4 rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+              There are currently no columns in your board. Create a column to get started.
+            </div>
+          ) : null}
+
           <Board
             columns={columns}
             tasksByColumn={tasksByColumn}
@@ -227,6 +324,9 @@ export const ProjectBoardPage = () => {
             isCreatingTask={createTaskMutation.isPending}
             taskCreateError={taskCreateError}
             onTaskClick={openTaskDrawer}
+            onOpenCreateTaskInColumn={openCreateTaskForColumn}
+            onRenameColumn={(column) => void renameColumn(column)}
+            onDeleteColumn={(column, taskCount) => void deleteColumn(column, taskCount)}
             onCreateTaskCancel={() => {
               setTaskCreateError(null);
               closeCreateTaskInline();
@@ -248,18 +348,46 @@ export const ProjectBoardPage = () => {
         isOpen={isDrawerOpen}
         task={selectedTask}
         isLoading={isTaskDrawerLoading}
-        users={project.members}
+        users={projectAssignees}
         columns={columns}
+        availableTags={allTags}
         draft={editingTaskDraft}
         isSaving={updateTaskMutation.isPending}
-        onStartEdit={startTaskEdit}
+        errorMessage={taskUpdateError}
+        onStartEdit={(task) => {
+          setTaskUpdateError(null);
+          startTaskEdit(task);
+        }}
         onDraftChange={updateTaskDraft}
-        onCancelEdit={cancelTaskEdit}
+        onCancelEdit={() => {
+          setTaskUpdateError(null);
+          cancelTaskEdit();
+        }}
         onSave={saveTaskDraft}
         onClose={() => {
+          setTaskUpdateError(null);
           cancelTaskEdit();
           closeTaskDrawer();
         }}
+      />
+
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        columns={columns}
+        assignees={assigneeOptions}
+        availableTags={allTags}
+        initialColumnId={taskModalColumnId}
+        initialAssigneeId={defaultAssigneeId}
+        isSubmitting={createTaskMutation.isPending}
+        errorMessage={taskCreateError}
+        onClose={() => {
+          if (createTaskMutation.isPending) {
+            return;
+          }
+          setTaskCreateError(null);
+          setIsCreateTaskModalOpen(false);
+        }}
+        onSubmit={(payload) => void submitCreateTaskFromModal(payload)}
       />
     </div>
   );

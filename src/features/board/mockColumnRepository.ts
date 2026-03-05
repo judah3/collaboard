@@ -1,5 +1,5 @@
 import { mockColumns } from "@/features/board/mockColumns";
-import type { ColumnRepository, CreateColumnInput } from "@/features/board/repository.types";
+import type { ColumnRepository, CreateColumnInput, UpdateColumnInput } from "@/features/board/repository.types";
 import type { BoardColumn } from "@/features/board/types";
 import { normalizeRequest, shapeResponse } from "@/shared/lib/interceptors";
 
@@ -25,6 +25,27 @@ const ensureColumnRules = (projectId: string, input: CreateColumnInput) => {
   }
 
   const hasDuplicate = projectColumns.some((column) => normalizeName(column.name) === normalizeName(name));
+  if (hasDuplicate) {
+    throw new Error("Column name already exists");
+  }
+
+  return name;
+};
+
+const ensureColumnNameRules = (projectId: string, nextName: string, excludeColumnId?: string) => {
+  const name = nextName.trim();
+
+  if (!name) {
+    throw new Error("Column name is required");
+  }
+
+  if (name.length > 40) {
+    throw new Error("Column name must be 40 characters or fewer");
+  }
+
+  const hasDuplicate = columns
+    .filter((column) => column.projectId === projectId && column.id !== excludeColumnId)
+    .some((column) => normalizeName(column.name) === normalizeName(name));
   if (hasDuplicate) {
     throw new Error("Column name already exists");
   }
@@ -60,6 +81,34 @@ export const mockColumnRepository: ColumnRepository = {
     columns = [...columns, created];
 
     return shapeResponse(created);
+  },
+
+  updateColumn: async (projectId, columnId, input: UpdateColumnInput) => {
+    normalizeRequest({ payload: { action: "update_column", projectId, columnId } });
+    const index = columns.findIndex((column) => column.projectId === projectId && column.id === columnId);
+    if (index < 0) {
+      throw new Error("Column not found");
+    }
+
+    const name = ensureColumnNameRules(projectId, input.name, columnId);
+    columns[index] = { ...columns[index], name };
+    return shapeResponse(columns[index]);
+  },
+
+  deleteColumn: async (projectId, columnId) => {
+    normalizeRequest({ payload: { action: "delete_column", projectId, columnId } });
+    const exists = columns.some((column) => column.projectId === projectId && column.id === columnId);
+    if (!exists) {
+      throw new Error("Column not found");
+    }
+
+    const remaining = columns.filter((column) => !(column.projectId === projectId && column.id === columnId));
+    const reordered = remaining
+      .filter((column) => column.projectId === projectId)
+      .sort((a, b) => a.order - b.order)
+      .map((column, index) => ({ ...column, order: index }));
+
+    columns = [...remaining.filter((column) => column.projectId !== projectId), ...reordered];
   },
 
   reorderColumns: async (projectId, orderedColumnIds) => {

@@ -10,7 +10,7 @@ export type CreateTaskInput = {
   columnId: string;
   title: string;
   description?: string;
-  assigneeId: string;
+  assigneeId?: string;
   dueDate: string;
   priority?: Task["priority"];
   tags?: string[];

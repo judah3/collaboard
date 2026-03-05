@@ -1,32 +1,30 @@
-import {
-  ChevronDown,
-  FolderKanban,
-  FolderOpen,
-  House,
-  LayoutDashboard,
-  ListChecks,
-  Plus,
-  Send,
-  Users
-} from "lucide-react";
-import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { ChevronDown, FolderKanban, FolderOpen, House, LayoutDashboard, ListChecks, Plus, Send, Users } from "lucide-react";
+import { type ComponentType, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useProjects } from "@/features/projects/hooks/useProjects";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/lib/cn";
 
-const mainNav = [
-  { label: "Workspace", icon: House },
-  { label: "Dashboard", icon: LayoutDashboard },
-  { label: "My Tasks", icon: ListChecks },
-  { label: "Projects", icon: FolderOpen },
-  { label: "Teams", icon: Users }
+type MainNavItem = {
+  label: string;
+  to: string;
+  icon: ComponentType<{ className?: string }>;
+  isProjectSection?: boolean;
+};
+
+const mainNav: MainNavItem[] = [
+  { label: "Workspace", to: "/workspace", icon: House },
+  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+  { label: "My Tasks", to: "/my-tasks", icon: ListChecks },
+  { label: "Projects", to: "/workspace", icon: FolderOpen, isProjectSection: true },
+  { label: "Teams", to: "/teams", icon: Users }
 ];
 
-const projectNav = ["Mad Dogs Portal", "AI CRM", "Website Revamp"];
-
 export const Sidebar = () => {
+  const navigate = useNavigate();
   const [isProjectsOpen, setIsProjectsOpen] = useState(true);
+  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
 
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 shrink-0 border-r border-slate-200 bg-slate-50 shadow-[2px_0_12px_-10px_rgba(15,23,42,0.28)] lg:flex lg:flex-col">
@@ -40,70 +38,83 @@ export const Sidebar = () => {
       <div className="flex flex-1 flex-col overflow-hidden px-4 py-3">
         <nav className="flex flex-col gap-2">
           {mainNav.map((item) => {
-            const isTeams = item.label === "Teams";
-            const isProjects = item.label === "Projects";
-            return (
-              <div key={item.label}>
-                <button
-                  className={cn(
-                    "flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40",
-                    isTeams && "bg-slate-100"
-                  )}
-                  onClick={() => {
-                    if (isProjects) {
-                      setIsProjectsOpen((current) => !current);
-                    }
-                  }}
-                >
-                  <item.icon className="h-4 w-4 text-slate-500" />
-                  <span className="flex-1">{item.label}</span>
-                  {isProjects ? (
+            if (item.isProjectSection) {
+              return (
+                <div key={item.label}>
+                  <button
+                    className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+                    onClick={() => setIsProjectsOpen((current) => !current)}
+                  >
+                    <item.icon className="h-4 w-4 text-slate-500" />
+                    <NavLink to={item.to} className="flex-1">
+                      {item.label}
+                    </NavLink>
                     <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", isProjectsOpen ? "rotate-0" : "-rotate-90")} />
-                  ) : null}
-                </button>
+                  </button>
 
-                {isProjects && isProjectsOpen ? (
-                  <div className="mt-2 flex flex-col gap-2 pl-2">
-                    {projectNav.map((project) => (
-                      <NavLink
-                        key={project}
-                        to="/projects/mad-dogs-portal/board"
-                        className={({ isActive }) =>
-                          cn(
-                            "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900",
-                            isActive && project === "Mad Dogs Portal" && "bg-slate-100 text-slate-900"
-                          )
-                        }
-                      >
-                        <span
-                          className={cn(
-                            "inline-flex h-4 w-4 items-center justify-center rounded text-[10px] font-semibold",
-                            project === "Mad Dogs Portal" ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-500"
-                          )}
+                  {isProjectsOpen ? (
+                    <div className="mt-2 flex flex-col gap-2 pl-2">
+                      {isLoadingProjects ? (
+                        <p className="px-3 text-xs text-slate-500">Loading projects...</p>
+                      ) : null}
+                      {projects.map((project) => (
+                        <NavLink
+                          key={project.id}
+                          to={`/projects/${project.id}/board`}
+                          className={({ isActive }) =>
+                            cn(
+                              "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900",
+                              isActive && "bg-slate-100 text-slate-900"
+                            )
+                          }
                         >
-                          {project === "Mad Dogs Portal" ? "T" : "L"}
-                        </span>
-                        {project}
-                      </NavLink>
-                    ))}
-                    <button className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                      <Plus className="h-4 w-4" />
-                      New Project
-                    </button>
-                  </div>
-                ) : null}
-              </div>
+                          <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-blue-500 text-[10px] font-semibold text-white">
+                            {project.name.slice(0, 1).toUpperCase()}
+                          </span>
+                          <span className="truncate">{project.name}</span>
+                        </NavLink>
+                      ))}
+                      {!isLoadingProjects && projects.length === 0 ? (
+                        <p className="px-3 text-xs text-slate-500">No projects yet.</p>
+                      ) : null}
+                      <button
+                        className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+                        onClick={() => navigate("/workspace")}
+                      >
+                        <Plus className="h-4 w-4" />
+                        New Project
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            return (
+              <NavLink
+                key={item.label}
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none",
+                    isActive && "bg-slate-100 text-slate-900"
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4 text-slate-500" />
+                {item.label}
+              </NavLink>
             );
           })}
         </nav>
 
         <div className="mt-4 h-px bg-slate-200" />
         <div className="mt-4 flex flex-col gap-2">
-          <button className="flex h-9 w-full items-center gap-2 rounded-lg bg-slate-100 px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+          <button className="flex h-9 w-full items-center gap-2 rounded-lg bg-slate-100 px-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-200 focus:outline-none">
             <Plus className="h-4 w-4" />
             Create Task
           </button>
-          <button className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+          <button className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none">
             <Users className="h-4 w-4" />
             Invite Team
           </button>
@@ -112,7 +123,7 @@ export const Sidebar = () => {
         <div className="mt-auto pt-4">
           <div className="mb-3 h-px bg-slate-200" />
           <div className="mb-2 flex items-center justify-between px-2">
-            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none">
               <Plus className="h-4 w-4" />
             </button>
             <div className="flex -space-x-2">
@@ -120,7 +131,7 @@ export const Sidebar = () => {
               <Avatar name="Anna F." size="sm" />
               <Avatar name="Marco T." size="sm" />
             </div>
-            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus:outline-none">
               <ChevronDown className="h-4 w-4" />
             </button>
           </div>
@@ -129,7 +140,7 @@ export const Sidebar = () => {
               <Plus className="h-4 w-4" />
               Create Task
             </Button>
-            <button className="inline-flex h-10 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <button className="inline-flex h-10 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 focus:outline-none">
               <Send className="h-4 w-4" />
             </button>
           </div>
@@ -138,3 +149,5 @@ export const Sidebar = () => {
     </aside>
   );
 };
+
+

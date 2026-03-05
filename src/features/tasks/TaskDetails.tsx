@@ -1,6 +1,7 @@
-import type { ChangeEvent } from "react";
+import { useMemo, useState } from "react";
 import type { BoardColumn } from "@/features/board/types";
 import type { Task } from "@/features/tasks/types";
+import { Button } from "@/shared/ui/Button";
 import { formatDueDate } from "@/shared/lib/date";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Badge } from "@/shared/ui/Badge";
@@ -12,22 +13,47 @@ type TaskDetailsProps = {
   draft: Task;
   usersById: Record<string, string>;
   columns: BoardColumn[];
+  availableTags: string[];
   isEditing: boolean;
   onDraftChange: (patch: Partial<Task>) => void;
 };
 
-export const TaskDetails = ({ draft, usersById, columns, isEditing, onDraftChange }: TaskDetailsProps) => {
+export const TaskDetails = ({ draft, usersById, columns, availableTags, isEditing, onDraftChange }: TaskDetailsProps) => {
   const assigneeName = usersById[draft.assigneeId];
   const priorityTone = draft.priority === "High" ? "red" : draft.priority === "Medium" ? "amber" : "slate";
+  const [selectedTag, setSelectedTag] = useState("");
+  const [newTagInput, setNewTagInput] = useState("");
+  const [tagError, setTagError] = useState<string | null>(null);
+  const currentTags = useMemo(() => draft.tags ?? [], [draft.tags]);
 
-  const onTagsChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const nextTags = event.target.value
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean)
-      .slice(0, 8);
+  const addSelectedTag = () => {
+    const candidate = (selectedTag || newTagInput).trim();
+    if (!candidate) {
+      return;
+    }
 
-    onDraftChange({ tags: nextTags });
+    if (candidate.length > 24) {
+      setTagError("Tag must be 24 characters or fewer.");
+      return;
+    }
+
+    if (currentTags.length >= 8) {
+      setTagError("A task can only have up to 8 tags.");
+      return;
+    }
+
+    const exists = currentTags.some((tag) => tag.toLowerCase() === candidate.toLowerCase());
+    if (!exists) {
+      onDraftChange({ tags: [...currentTags, candidate] });
+    }
+    setTagError(null);
+    setSelectedTag("");
+    setNewTagInput("");
+  };
+
+  const removeTag = (tag: string) => {
+    onDraftChange({ tags: currentTags.filter((item) => item !== tag) });
+    setTagError(null);
   };
 
   if (!isEditing) {
@@ -76,7 +102,7 @@ export const TaskDetails = ({ draft, usersById, columns, isEditing, onDraftChang
         <textarea
           value={draft.description}
           onChange={(event) => onDraftChange({ description: event.target.value.slice(0, 1000) })}
-          className="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          className="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none"
         />
       </div>
 
@@ -120,10 +146,48 @@ export const TaskDetails = ({ draft, usersById, columns, isEditing, onDraftChang
         </div>
 
         <div className="col-span-2 space-y-1">
-          <p className="text-xs text-slate-500">Tags (comma separated)</p>
-          <Input value={draft.tags.join(", ")} onChange={onTagsChange} />
+          <p className="text-xs text-slate-500">Tags</p>
+          <div className="flex flex-col gap-2">
+            <Input
+              value={newTagInput}
+              onChange={(event) => setNewTagInput(event.target.value)}
+              placeholder="Type a new tag (e.g. backend)"
+            />
+            <select
+              value={selectedTag}
+              onChange={(event) => setSelectedTag(event.target.value)}
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+            >
+              <option value="">{availableTags.length === 0 ? "No project tags found" : "Select project tag"}</option>
+              {availableTags.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
+              ))}
+            </select>
+            <Button type="button" variant="secondary" onClick={addSelectedTag} disabled={!(selectedTag || newTagInput.trim())}>
+              Add
+            </Button>
+          </div>
+
+          {currentTags.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {currentTags.map((tag) => (
+                <button
+                  type="button"
+                  key={tag}
+                  onClick={() => removeTag(tag)}
+                  className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200"
+                >
+                  {tag} x
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {tagError ? <p className="text-xs text-red-600">{tagError}</p> : null}
         </div>
       </div>
     </section>
   );
 };
+

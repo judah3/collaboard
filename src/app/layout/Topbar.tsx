@@ -1,5 +1,6 @@
-import { Bell, BriefcaseBusiness, Clock3, Plus, Search } from "lucide-react";
+import { Bell, BriefcaseBusiness, Clock3, LogOut, Plus, Search } from "lucide-react";
 import { Link, useLocation, useMatches } from "react-router-dom";
+import { useAuth } from "@/features/auth";
 import { taskStoreSelectors, useTaskStore } from "@/features/tasks/taskStore";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
@@ -14,23 +15,35 @@ type ProjectLoaderData = {
 export const Topbar = () => {
   const location = useLocation();
   const matches = useMatches();
+  const { user, logout } = useAuth();
   const projectMatch = matches.find((match) => match.id === "project");
   const projectData = projectMatch?.data as ProjectLoaderData | undefined;
-  const projectId = projectData?.projectId ?? "mad-dogs-portal";
-  const projectName = projectData?.project.name ?? "Project";
+  const projectId = projectData?.projectId ?? "";
+  const projectName = projectData?.project.name ?? "Workspace";
   const searchQuery = useTaskStore(taskStoreSelectors.searchQuery);
   const setSearchQuery = useTaskStore((state) => state.setSearchQuery);
   const onBoardPage = location.pathname.includes("/board");
+  const showProjectBreadcrumb = location.pathname.includes("/projects/");
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:px-4 lg:px-6">
       <div className="flex min-w-0 items-center gap-2 text-slate-600">
         <BriefcaseBusiness className="h-4 w-4 text-slate-500" />
-        <Link to={`/projects/${projectId}/board`} className="truncate text-base font-semibold text-slate-700">
-          Project
-        </Link>
-        <span className="text-slate-400">/</span>
-        <span className="truncate text-base font-semibold text-slate-900">{projectName}</span>
+        {showProjectBreadcrumb ? (
+          <>
+            {projectId ? (
+              <Link to={`/projects/${projectId}/board`} className="truncate text-base font-semibold text-slate-700">
+                Project
+              </Link>
+            ) : (
+              <span className="truncate text-base font-semibold text-slate-700">Project</span>
+            )}
+            <span className="text-slate-400">/</span>
+            <span className="truncate text-base font-semibold text-slate-900">{projectName}</span>
+          </>
+        ) : (
+          <span className="truncate text-base font-semibold text-slate-900">Project Management</span>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -53,6 +66,11 @@ export const Topbar = () => {
         <Button variant="secondary" className="h-9 px-4">
           <Plus className="h-4 w-4" />
           Create
+        </Button>
+        <span className="hidden text-sm text-slate-600 md:inline">{user?.name ?? "User"}</span>
+        <Button variant="ghost" className="h-9 px-3" onClick={() => void logout()}>
+          <LogOut className="h-4 w-4" />
+          Logout
         </Button>
       </div>
     </header>

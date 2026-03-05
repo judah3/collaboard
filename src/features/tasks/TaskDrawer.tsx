@@ -14,8 +14,10 @@ type TaskDrawerProps = {
   isLoading: boolean;
   users: Array<{ id: string; name: string }>;
   columns: BoardColumn[];
+  availableTags: string[];
   draft: Partial<Task> | null;
   isSaving: boolean;
+  errorMessage?: string | null;
   onStartEdit: (task: Task) => void;
   onDraftChange: (patch: Partial<Task>) => void;
   onCancelEdit: () => void;
@@ -29,8 +31,10 @@ export const TaskDrawer = ({
   isLoading,
   users,
   columns,
+  availableTags,
   draft,
   isSaving,
+  errorMessage,
   onStartEdit,
   onDraftChange,
   onCancelEdit,
@@ -236,8 +240,16 @@ export const TaskDrawer = ({
           </div>
         ) : (
           <div ref={paneContainerRef} className="flex min-h-0 flex-1 flex-col overflow-hidden pb-6">
+            {errorMessage ? <p className="mb-2 text-sm text-red-600">{errorMessage}</p> : null}
             <div className="min-h-0 overflow-y-auto pr-1" style={{ height: detailsPaneHeight }}>
-              <TaskDetails draft={currentTask} usersById={usersById} columns={columns} isEditing={hasDraft} onDraftChange={onDraftChange} />
+              <TaskDetails
+                draft={currentTask}
+                usersById={usersById}
+                columns={columns}
+                availableTags={availableTags}
+                isEditing={hasDraft}
+                onDraftChange={onDraftChange}
+              />
             </div>
 
             <button
