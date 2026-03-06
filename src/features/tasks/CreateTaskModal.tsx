@@ -225,7 +225,7 @@ export const CreateTaskModal = ({
             </select>
           </label>
 
-          <label className="block">
+          <div className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">Tags</span>
             <div>
               <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1 shadow-sm">
@@ -289,7 +289,7 @@ export const CreateTaskModal = ({
             {selectedTags.length > 0 ? (
               <p className="mt-2 text-xs text-slate-500">Selected: {selectedTags.length}/8</p>
             ) : null}
-          </label>
+          </div>
         </div>
 
         {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}

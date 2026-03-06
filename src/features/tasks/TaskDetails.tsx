@@ -1,9 +1,10 @@
-import { X } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { BoardColumn } from "@/features/board/types";
 import type { Task } from "@/features/tasks/types";
 import { Button } from "@/shared/ui/Button";
 import { formatDueDate } from "@/shared/lib/date";
+import { slugify } from "@/shared/lib/slugify";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Badge } from "@/shared/ui/Badge";
 import { Divider } from "@/shared/ui/Divider";
@@ -24,7 +25,9 @@ export const TaskDetails = ({ draft, usersById, columns, availableTags, isEditin
   const priorityTone = draft.priority === "High" ? "red" : draft.priority === "Medium" ? "amber" : "slate";
   const [tagInput, setTagInput] = useState("");
   const [tagError, setTagError] = useState<string | null>(null);
+  const [isTitleSlugCopied, setIsTitleSlugCopied] = useState(false);
   const currentTags = useMemo(() => draft.tags ?? [], [draft.tags]);
+  const taskTitleSlug = useMemo(() => slugify(draft.title), [draft.title]);
   const remainingTagOptions = useMemo(
     () =>
       availableTags.filter((tag) => {
@@ -71,11 +74,45 @@ export const TaskDetails = ({ draft, usersById, columns, availableTags, isEditin
     setTagError(null);
   };
 
+  const copyTaskTitleSlug = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(taskTitleSlug);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = taskTitleSlug;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      setIsTitleSlugCopied(true);
+      window.setTimeout(() => setIsTitleSlugCopied(false), 1200);
+    } catch {
+      setIsTitleSlugCopied(false);
+    }
+  };
+
   if (!isEditing) {
     return (
       <section className="space-y-4">
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-slate-900">{draft.title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-semibold text-slate-900">{draft.title}</h2>
+            <button
+              type="button"
+              onClick={() => void copyTaskTitleSlug()}
+              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              aria-label={`Copy task slug ${taskTitleSlug}`}
+              title={isTitleSlugCopied ? "Copied" : "Copy task slug"}
+            >
+              {isTitleSlugCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+          </div>
           <p className="text-sm text-slate-600">{draft.description}</p>
         </div>
 
@@ -113,6 +150,19 @@ export const TaskDetails = ({ draft, usersById, columns, availableTags, isEditin
   return (
     <section className="space-y-4">
       <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Title</p>
+          <button
+            type="button"
+            onClick={() => void copyTaskTitleSlug()}
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            aria-label={`Copy task slug ${taskTitleSlug}`}
+            title={isTitleSlugCopied ? "Copied" : "Copy task slug"}
+          >
+            {isTitleSlugCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {isTitleSlugCopied ? "Copied" : "Copy slug"}
+          </button>
+        </div>
         <Input value={draft.title} onChange={(event) => onDraftChange({ title: event.target.value.slice(0, 120) })} />
         <textarea
           value={draft.description}
