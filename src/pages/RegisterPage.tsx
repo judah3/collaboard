@@ -5,7 +5,7 @@ import { useAuth } from "@/features/auth";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 
-const MAIN_ROUTE = "/projects/mad-dogs-portal/board";
+const MAIN_ROUTE = "/dashboard";
 
 export const RegisterPage = () => {
   const navigate = useNavigate();

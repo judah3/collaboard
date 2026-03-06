@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth";
+import { getDefaultRoute } from "@/features/auth/lastVisitedRoute";
 
 type PublicOnlyRouteProps = {
   children: ReactNode;
 };
-
-const MAIN_ROUTE = "/projects/mad-dogs-portal/board";
 
 export const PublicOnlyRoute = ({ children }: PublicOnlyRouteProps) => {
   const { status } = useAuth();
@@ -20,7 +19,7 @@ export const PublicOnlyRoute = ({ children }: PublicOnlyRouteProps) => {
   }
 
   if (status === "authenticated") {
-    return <Navigate to={MAIN_ROUTE} replace />;
+    return <Navigate to={getDefaultRoute()} replace />;
   }
 
   return <>{children}</>;

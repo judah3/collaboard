@@ -2,6 +2,7 @@ import { LogIn, Mail } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth";
+import { getDefaultRoute } from "@/features/auth/lastVisitedRoute";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 
@@ -9,7 +10,6 @@ type LoginLocationState = {
   from?: string;
 };
 
-const MAIN_ROUTE = "/projects/mad-dogs-portal/board";
 const SAVED_CREDENTIALS_KEY = "pm_saved_login_credentials";
 
 export const LoginPage = () => {
@@ -22,7 +22,7 @@ export const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const from = (location.state as LoginLocationState | null)?.from ?? MAIN_ROUTE;
+  const from = (location.state as LoginLocationState | null)?.from;
 
   useEffect(() => {
     const raw = localStorage.getItem(SAVED_CREDENTIALS_KEY);
@@ -62,7 +62,8 @@ export const LoginPage = () => {
       } else {
         localStorage.removeItem(SAVED_CREDENTIALS_KEY);
       }
-      navigate(from, { replace: true });
+      const redirectTarget = from ?? getDefaultRoute();
+      navigate(redirectTarget, { replace: true });
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Login failed";
       setError(message === "Failed to fetch" ? "Cannot reach API server. Check backend and Vite proxy settings." : message);

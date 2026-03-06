@@ -59,6 +59,23 @@ export const CreateTaskModal = ({
 
   const fallbackColumnId = useMemo(() => initialColumnId ?? columns[0]?.id ?? "", [columns, initialColumnId]);
 
+  const addTagCandidate = (rawCandidate: string) => {
+    const candidate = rawCandidate.trim();
+    if (!candidate) {
+      return;
+    }
+
+    if (candidate.length > 24) {
+      setValidationError("Tag must be 24 characters or fewer.");
+      return;
+    }
+
+    setValidationError(null);
+    setSelectedTags((current) =>
+      current.some((item) => item.toLowerCase() === candidate.toLowerCase()) ? current : [...current, candidate]
+    );
+  };
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -102,20 +119,8 @@ export const CreateTaskModal = ({
   };
 
   const addSelectedTag = () => {
-    const candidate = (selectedTag || newTagInput).trim();
-    if (!candidate) {
-      return;
-    }
-
-    if (candidate.length > 24) {
-      setValidationError("Tag must be 24 characters or fewer.");
-      return;
-    }
-
-    setValidationError(null);
-    setSelectedTags((current) =>
-      current.some((item) => item.toLowerCase() === candidate.toLowerCase()) ? current : [...current, candidate]
-    );
+    const candidate = selectedTag || newTagInput;
+    addTagCandidate(candidate);
     setSelectedTag("");
     setNewTagInput("");
   };
@@ -196,7 +201,15 @@ export const CreateTaskModal = ({
               />
               <select
                 value={selectedTag}
-                onChange={(event) => setSelectedTag(event.target.value)}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setSelectedTag(value);
+                  if (!value) {
+                    return;
+                  }
+                  addTagCandidate(value);
+                  setSelectedTag("");
+                }}
                 disabled={isSubmitting || availableTags.length === 0}
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
               >

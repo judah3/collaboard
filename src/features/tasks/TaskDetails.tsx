@@ -26,8 +26,8 @@ export const TaskDetails = ({ draft, usersById, columns, availableTags, isEditin
   const [tagError, setTagError] = useState<string | null>(null);
   const currentTags = useMemo(() => draft.tags ?? [], [draft.tags]);
 
-  const addSelectedTag = () => {
-    const candidate = (selectedTag || newTagInput).trim();
+  const addTagCandidate = (rawCandidate: string) => {
+    const candidate = rawCandidate.trim();
     if (!candidate) {
       return;
     }
@@ -47,6 +47,11 @@ export const TaskDetails = ({ draft, usersById, columns, availableTags, isEditin
       onDraftChange({ tags: [...currentTags, candidate] });
     }
     setTagError(null);
+  };
+
+  const addSelectedTag = () => {
+    const candidate = selectedTag || newTagInput;
+    addTagCandidate(candidate);
     setSelectedTag("");
     setNewTagInput("");
   };
@@ -155,7 +160,15 @@ export const TaskDetails = ({ draft, usersById, columns, availableTags, isEditin
             />
             <select
               value={selectedTag}
-              onChange={(event) => setSelectedTag(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSelectedTag(value);
+                if (!value) {
+                  return;
+                }
+                addTagCandidate(value);
+                setSelectedTag("");
+              }}
               className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
             >
               <option value="">{availableTags.length === 0 ? "No project tags found" : "Select project tag"}</option>

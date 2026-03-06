@@ -36,9 +36,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         saveAuthSession(nextSession);
         setStatus("authenticated");
       } catch {
-        clearStoredAuthSession();
-        setSession(null);
-        setStatus("anonymous");
+        // Keep the stored session to avoid automatic logout when profile hydration fails.
+        setSession(stored);
+        setStatus("authenticated");
       }
     };
 

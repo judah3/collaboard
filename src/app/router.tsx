@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "@/app/layout/AppShell";
 import { PublicOnlyRoute } from "@/app/routes/PublicOnlyRoute";
 import { RequireAuth } from "@/app/routes/RequireAuth";
+import { LastVisitedRedirect } from "@/app/routes/LastVisitedRedirect";
 import { ProjectLayout } from "@/app/routes/ProjectLayout";
 import { ProjectRouteErrorPage } from "@/app/routes/ProjectRouteErrorPage";
 import { listViewLoader, projectLoader, settingsViewLoader, timelineViewLoader } from "@/app/routes/loaders";
@@ -41,7 +42,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/projects/mad-dogs-portal/board" replace />
+        element: <LastVisitedRedirect />
       },
       {
         path: "workspace",
@@ -61,7 +62,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "projects",
-        element: <Navigate to="/projects/mad-dogs-portal/board" replace />
+        element: <Navigate to="/dashboard" replace />
       },
       {
         id: "project",
