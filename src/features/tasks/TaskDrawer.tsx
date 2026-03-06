@@ -78,8 +78,8 @@ export const TaskDrawer = ({
       }
 
       const rect = container.getBoundingClientRect();
-      const minTopPane = 180;
-      const minBottomPane = 160;
+      const minTopPane = 220;
+      const minBottomPane = 120;
       const nextHeight = Math.min(Math.max(event.clientY - rect.top, minTopPane), rect.height - minBottomPane);
       setDetailsPaneHeight(nextHeight);
     };
@@ -93,6 +93,41 @@ export const TaskDrawer = ({
       window.removeEventListener("pointerup", onPointerUp);
     };
   }, [isResizingPane]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const container = paneContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const minTopPane = 220;
+    const minBottomPane = 120;
+
+    const syncPaneHeight = () => {
+      const availableHeight = container.getBoundingClientRect().height;
+      const maxTopPane = Math.max(minTopPane, availableHeight - minBottomPane);
+      const preferredTopPane = Math.max(minTopPane, Math.round(availableHeight * 0.65));
+      const nextHeight = Math.min(preferredTopPane, maxTopPane);
+
+      setDetailsPaneHeight((current) => {
+        if (current >= minTopPane && current <= maxTopPane) {
+          return current;
+        }
+        return nextHeight;
+      });
+    };
+
+    syncPaneHeight();
+
+    const observer = new ResizeObserver(syncPaneHeight);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [hasDraft, isOpen, task?.id]);
 
   useEffect(() => {
     if (!isResizingDrawer) {
@@ -241,7 +276,7 @@ export const TaskDrawer = ({
         ) : (
           <div ref={paneContainerRef} className="flex min-h-0 flex-1 flex-col overflow-hidden pb-6">
             {errorMessage ? <p className="mb-2 text-sm text-red-600">{errorMessage}</p> : null}
-            <div className="min-h-0 overflow-y-auto pr-1" style={{ height: detailsPaneHeight }}>
+            <div className={cn("min-h-0 overflow-y-auto pr-1", hasDraft ? "flex-1" : "")} style={hasDraft ? undefined : { height: detailsPaneHeight }}>
               <TaskDetails
                 draft={currentTask}
                 usersById={usersById}
@@ -252,24 +287,28 @@ export const TaskDrawer = ({
               />
             </div>
 
-            <button
-              type="button"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                setIsResizingPane(true);
-              }}
-              className={cn(
-                "my-2 flex h-3 cursor-row-resize items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-500",
-                isResizingPane ? "bg-slate-100 text-slate-500" : ""
-              )}
-              aria-label="Resize task details panel"
-            >
-              <GripHorizontal className="h-3.5 w-3.5" />
-            </button>
+            {!hasDraft ? (
+              <>
+                <button
+                  type="button"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    setIsResizingPane(true);
+                  }}
+                  className={cn(
+                    "my-2 flex h-3 cursor-row-resize items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-500",
+                    isResizingPane ? "bg-slate-100 text-slate-500" : ""
+                  )}
+                  aria-label="Resize task details panel"
+                >
+                  <GripHorizontal className="h-3.5 w-3.5" />
+                </button>
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              <TaskComments task={currentTask} usersById={usersById} />
-            </div>
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                  <TaskComments task={currentTask} usersById={usersById} />
+                </div>
+              </>
+            ) : null}
           </div>
         )}
       </aside>
