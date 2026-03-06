@@ -19,7 +19,7 @@ export const ProjectRouteErrorPage = () => {
           {isResponseError ? error.statusText || "Unable to load this project." : "Unexpected error while loading project."}
         </p>
         <div className="mt-4 flex justify-center">
-          <Link to="/projects/mad-dogs-portal/board">
+          <Link to="/dashboard">
             <Button variant="primary">Back to Board</Button>
           </Link>
         </div>

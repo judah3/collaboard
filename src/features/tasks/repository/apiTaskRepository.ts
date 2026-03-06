@@ -44,6 +44,16 @@ const readArray = (payload: unknown): unknown[] => {
   return [];
 };
 
+const readStringArray = (record: JsonRecord, keys: string[]): string[] => {
+  for (const key of keys) {
+    const value = record[key];
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === "string");
+    }
+  }
+  return [];
+};
+
 const ensureAuthToken = (): string => {
   const token = getStoredAuthSession()?.accessToken;
   if (!token) {
@@ -92,6 +102,13 @@ const mapTask = (payload: unknown, projectId: string): Task | null => {
   }
 
   const commentsRaw = Array.isArray(payload.comments) ? payload.comments : [];
+  const directTags = readStringArray(payload, ["tags", "tag_names", "tagNames"]);
+  const nestedTags = Array.isArray(payload.task_tags)
+    ? payload.task_tags
+        .map((tag) => (isRecord(tag) ? readString(tag, ["name", "label", "tag"]) : undefined))
+        .filter((tag): tag is string => typeof tag === "string")
+    : [];
+  const tags = directTags.length > 0 ? directTags : nestedTags;
 
   return {
     id,
@@ -103,7 +120,7 @@ const mapTask = (payload: unknown, projectId: string): Task | null => {
     priority: toUiPriority(readString(payload, ["priority"])),
     assigneeId: readString(payload, ["assignee", "assignee_id"]) ?? "unassigned",
     dueDate: readString(payload, ["due_date", "dueDate"]) ?? new Date().toISOString().slice(0, 10),
-    tags: Array.isArray(payload.tags) ? payload.tags.filter((tag): tag is string => typeof tag === "string") : [],
+    tags,
     commentsCount: readNumber(payload, ["comments_count", "commentsCount"]) ?? commentsRaw.length,
     attachmentsCount: readNumber(payload, ["attachments_count", "attachmentsCount"]) ?? 0,
     comments: commentsRaw
@@ -182,15 +199,29 @@ export const apiTaskRepository: TaskRepository = {
     if (typeof patch.columnId === "string") body.column = patch.columnId;
     if (Array.isArray(patch.tags)) body.tags = patch.tags;
 
-    const response = await fetch(resolvePath(`/projects/${projectId}/tasks/${taskId}`), {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(body),
-      credentials: "include"
-    });
+    let response: Response;
+    try {
+      response = await fetch(resolvePath(`/projects/${projectId}/tasks/${taskId}`), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body),
+        credentials: "include"
+      });
+    } catch {
+      // Some deployments/proxies block PATCH preflight; fall back to PUT with the same payload.
+      response = await fetch(resolvePath(`/projects/${projectId}/tasks/${taskId}`), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body),
+        credentials: "include"
+      });
+    }
 
     await ensureOk(response);
     const task = mapTask(await response.json(), projectId);

@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 import type { BoardColumn } from "@/features/board/types";
 import type { TaskPriority } from "@/features/tasks/types";
 import { Button } from "@/shared/ui/Button";
@@ -50,14 +51,52 @@ export const CreateTaskModal = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState(defaultDueDate);
-  const [selectedTag, setSelectedTag] = useState("");
-  const [newTagInput, setNewTagInput] = useState("");
+  const [tagInput, setTagInput] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [priority, setPriority] = useState<TaskPriority>("Medium");
   const [assigneeId, setAssigneeId] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const fallbackColumnId = useMemo(() => initialColumnId ?? columns[0]?.id ?? "", [columns, initialColumnId]);
+
+  const remainingTagOptions = useMemo(
+    () =>
+      availableTags.filter((tag) => {
+        const alreadySelected = selectedTags.some((selectedTag) => selectedTag.toLowerCase() === tag.toLowerCase());
+        const matchesQuery = tag.toLowerCase().includes(tagInput.trim().toLowerCase());
+        return !alreadySelected && matchesQuery;
+      }),
+    [availableTags, selectedTags, tagInput]
+  );
+
+  const addTagCandidate = (rawCandidate: string) => {
+    const candidate = rawCandidate.trim();
+    if (!candidate) {
+      return false;
+    }
+
+    if (candidate.length > 24) {
+      setValidationError("Tag must be 24 characters or fewer.");
+      return false;
+    }
+
+    if (selectedTags.length >= 8) {
+      setValidationError("A task can only have up to 8 tags.");
+      return false;
+    }
+
+    setValidationError(null);
+    let didAdd = false;
+    setSelectedTags((current) =>
+      current.some((item) => item.toLowerCase() === candidate.toLowerCase())
+        ? current
+        : (() => {
+            didAdd = true;
+            return [...current, candidate];
+          })()
+    );
+    return didAdd;
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -68,8 +107,7 @@ export const CreateTaskModal = ({
     setTitle("");
     setDescription("");
     setDueDate(defaultDueDate());
-    setSelectedTag("");
-    setNewTagInput("");
+    setTagInput("");
     setSelectedTags([]);
     setPriority("Medium");
     setAssigneeId(initialAssigneeId ?? assignees[0]?.id ?? "");
@@ -101,23 +139,11 @@ export const CreateTaskModal = ({
     });
   };
 
-  const addSelectedTag = () => {
-    const candidate = (selectedTag || newTagInput).trim();
-    if (!candidate) {
-      return;
+  const addTypedTag = () => {
+    const didAdd = addTagCandidate(tagInput);
+    if (didAdd) {
+      setTagInput("");
     }
-
-    if (candidate.length > 24) {
-      setValidationError("Tag must be 24 characters or fewer.");
-      return;
-    }
-
-    setValidationError(null);
-    setSelectedTags((current) =>
-      current.some((item) => item.toLowerCase() === candidate.toLowerCase()) ? current : [...current, candidate]
-    );
-    setSelectedTag("");
-    setNewTagInput("");
   };
 
   const removeTag = (tag: string) => {
@@ -181,55 +207,8 @@ export const CreateTaskModal = ({
                 <option key={assignee.id} value={assignee.id}>
                   {assignee.name}
                 </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">Tags</span>
-            <div className="flex flex-col gap-2">
-              <Input
-                value={newTagInput}
-                onChange={(event) => setNewTagInput(event.target.value)}
-                placeholder="Type a new tag (e.g. backend)"
-                disabled={isSubmitting}
-              />
-              <select
-                value={selectedTag}
-                onChange={(event) => setSelectedTag(event.target.value)}
-                disabled={isSubmitting || availableTags.length === 0}
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
-              >
-                <option value="">{availableTags.length === 0 ? "No project tags found" : "Select project tag"}</option>
-                {availableTags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    {tag}
-                  </option>
                 ))}
               </select>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={addSelectedTag}
-                disabled={isSubmitting || !(selectedTag || newTagInput.trim())}
-              >
-                Add
-              </Button>
-            </div>
-            {selectedTags.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedTags.map((tag) => (
-                  <button
-                    type="button"
-                    key={tag}
-                    onClick={() => removeTag(tag)}
-                    className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200"
-                  >
-                    {tag} x
-                  </button>
-                ))}
-              </div>
-            ) : null}
           </label>
 
           <label className="block">
@@ -245,6 +224,72 @@ export const CreateTaskModal = ({
               <option value="Low">Low</option>
             </select>
           </label>
+
+          <div className="block">
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">Tags</span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1 shadow-sm">
+                {selectedTags.map((tag) => (
+                  <button
+                    type="button"
+                    key={tag}
+                    onClick={() => removeTag(tag)}
+                    disabled={isSubmitting}
+                    className="inline-flex h-7 items-center gap-1.5 rounded-md bg-blue-50 px-2.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-60"
+                  >
+                    <span>{tag}</span>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                ))}
+                <input
+                  value={tagInput}
+                  onChange={(event) => {
+                    setTagInput(event.target.value);
+                    setValidationError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === ",") {
+                      event.preventDefault();
+                      addTypedTag();
+                    }
+                    if (event.key === "Backspace" && !tagInput.trim() && selectedTags.length > 0) {
+                      removeTag(selectedTags[selectedTags.length - 1]);
+                    }
+                  }}
+                  placeholder={selectedTags.length === 0 ? "Type tag and press Enter..." : "Add another tag..."}
+                  disabled={isSubmitting}
+                  className="h-7 min-w-[180px] flex-1 border-0 bg-transparent px-1 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {remainingTagOptions.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {remainingTagOptions.slice(0, 8).map((tag) => (
+                    <Button
+                      key={tag}
+                      type="button"
+                      variant="secondary"
+                      className="h-7 px-2.5 text-xs"
+                      disabled={isSubmitting}
+                      onClick={() => {
+                        const didAdd = addTagCandidate(tag);
+                        if (didAdd) {
+                          setTagInput("");
+                        }
+                      }}
+                    >
+                      + {tag}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+
+              <p className="mt-2 text-xs text-slate-500">Up to 8 tags. Press Enter or comma to add.</p>
+            </div>
+            {selectedTags.length > 0 ? (
+              <p className="mt-2 text-xs text-slate-500">Selected: {selectedTags.length}/8</p>
+            ) : null}
+          </div>
         </div>
 
         {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}

@@ -11,7 +11,7 @@ export const requireProjectExists = async (projectId: string) => {
     if (error instanceof Error) {
       const normalized = error.message.toLowerCase();
       if (normalized.includes("missing auth access token") || normalized.includes("status 401")) {
-        throw redirect("/login");
+        throw new Response("Unauthorized", { status: 401, statusText: "Unauthorized" });
       }
     }
     throw error;
